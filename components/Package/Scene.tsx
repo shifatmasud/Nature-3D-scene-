@@ -141,18 +141,18 @@ const Scene = () => {
     const trees = createTrees(scene, camera, theme, treePositions);
     const bushes = createBushes(scene, camera, theme, bushPositions);
 
-    // Combine obstacles for grass with radii
-    // Rocks need larger avoidance radius (r: 2.5)
-    // Trees need medium (r: 1.0)
-    // Bushes need medium (r: 1.5)
-    const allObstacles = [
-        ...rockPositions.map(p => ({...p, r: 2.5})),
-        ...treePositions.map(p => ({...p, r: 1.2})),
-        ...bushPositions.map(p => ({...p, r: 1.5}))
+    // Combine obstacles for grass "Smart Detection"
+    // Rocks: Larger masking radius to keep grass off the stone
+    // Bushes: Medium radius
+    // Trees: EXCLUDED (Grass should grow under trees)
+    const obstacles = [
+        ...rockPositions.map(p => ({...p, r: 2.3})),
+        ...bushPositions.map(p => ({...p, r: 1.4}))
     ];
     
     // Create Grass
-    const grass = createGrass(scene, camera, theme, 1200, allObstacles);
+    // 25 Chunks * 500 Blades = 12500 Blades (Massive Density)
+    const grass = createGrass(scene, camera, theme, 25, obstacles);
 
     // Store update functions
     updatablesRef.current = [bushes.update, trees.update, rocks.update, ground.update, grass.update];
