@@ -5,7 +5,7 @@
 import React from 'react';
 import { useTheme } from '../../Theme.tsx';
 import ThemeToggleButton from '../Core/ThemeToggleButton.tsx';
-import ProceduralBush from '../Package/ProceduralBush.tsx';
+import Scene from '../Package/Scene.tsx';
 import { motion } from 'framer-motion';
 
 const Welcome = () => {
@@ -56,7 +56,7 @@ const Welcome = () => {
   return (
     <div style={styles.container}>
       {/* 3D Scene Layer */}
-      <ProceduralBush />
+      <Scene />
 
       {/* UI Overlay Layer */}
       <ThemeToggleButton />
@@ -69,7 +69,7 @@ const Welcome = () => {
       >
         <h1 style={styles.heading}>Procedural Nature</h1>
         <p style={styles.subheading}>
-          A 200 instance procedural bush. 
+          A 200 instance procedural bush on undulating terrain.
           Features 3-stage LOD (High → Med → Low), vertex color tinting, and optimized Gouraud lighting.
           <br/><br/>
           <span style={{ fontSize: '12px', opacity: 0.6 }}>DRAG TO ROTATE • SCROLL TO ZOOM OUT FOR LOD</span>

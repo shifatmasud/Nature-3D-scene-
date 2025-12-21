@@ -7,11 +7,12 @@ import * as THREE from 'three';
 
 interface ThreeCanvasProps {
   onInit: (scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => (() => void) | void;
+  onUpdate?: (time: number) => void;
   className?: string;
   style?: React.CSSProperties;
 }
 
-const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, className, style }) => {
+const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, style }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,10 +23,9 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, className, style }) =
     const height = containerRef.current.clientHeight;
 
     const scene = new THREE.Scene();
-    // Note: Background color is now handled by the parent in onInit or via ref updates
-
+    
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 0, 8);
+    camera.position.set(0, 5, 12); // Slightly higher starting position
 
     const renderer = new THREE.WebGLRenderer({ 
       antialias: true, 
@@ -55,8 +55,16 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, className, style }) =
 
     // --- LOOP ---
     let animationFrameId: number;
+    const clock = new THREE.Clock();
+
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
+      
+      const time = clock.getElapsedTime();
+      if (onUpdate) {
+        onUpdate(time);
+      }
+
       renderer.render(scene, camera);
     };
     animate();
@@ -68,7 +76,6 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, className, style }) =
       
       if (cleanupUserLogic) cleanupUserLogic();
       
-      // CRITICAL: Force context loss to prevents "Too many active WebGL contexts" error
       renderer.dispose();
       renderer.forceContextLoss(); 
       
@@ -76,7 +83,7 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, className, style }) =
         containerRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [onInit]); // Removed theme dependency to prevent recreation on theme change
+  }, [onInit, onUpdate]); 
 
   return <div ref={containerRef} className={className} style={{ width: '100%', height: '100%', ...style }} />;
 };
