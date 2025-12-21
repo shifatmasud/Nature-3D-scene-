@@ -9,7 +9,7 @@ import * as THREE from 'three';
 // --- HELPERS ---
 
 const createGrassTuftTexture = () => {
-  const size = 64; 
+  const size = 32; // OPTIMIZED: 32px texture
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -37,12 +37,12 @@ const createGrassTuftTexture = () => {
     ctx.restore();
   };
 
-  const bladeCount = 16;
+  const bladeCount = 12; // Reduced visual blade count in texture
   for (let i = 0; i < bladeCount; i++) {
     const x = size / 2 + (Math.random() - 0.5) * (size * 0.5);
     const y = size; 
     
-    const width = (size * 0.06) + Math.random() * (size * 0.05); 
+    const width = (size * 0.08) + Math.random() * (size * 0.05); 
     const height = (size * 0.75) + Math.random() * (size * 0.25);
     const lean = (Math.random() - 0.5) * 0.4; 
     
@@ -51,8 +51,8 @@ const createGrassTuftTexture = () => {
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.minFilter = THREE.LinearFilter; 
-  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.NearestFilter; // Faster filter
+  texture.magFilter = THREE.NearestFilter;
   return texture;
 };
 
@@ -164,11 +164,10 @@ export const createGrass = (
         const customUniforms = { uTime: { value: 0 } };
         const grassTexture = createGrassTuftTexture();
 
-        // CHUNK CONFIG - MASSIVE PATCHES
-        // 500 Blades merged into one geometry.
-        // Chunk size 8.5 covers a large area.
-        const BLADES_PER_CHUNK = 500; 
-        const CHUNK_SIZE = 8.5; 
+        // CHUNK CONFIG - LOW-MID QUALITY
+        // 300 Blades: Good density, low vertex count.
+        const BLADES_PER_CHUNK = 300; 
+        const CHUNK_SIZE = 8.0; 
 
         // Generate Chunk Mesh
         const geometry = createGrassChunkGeometry(BLADES_PER_CHUNK, CHUNK_SIZE);
@@ -184,8 +183,8 @@ export const createGrass = (
         });
 
         // --- PREPARE OBSTACLE UNIFORM ---
-        // We pack obstacles into a vec3 array [x, z, radius] for the shader.
-        const MAX_OBSTACLES = 50;
+        // OPTIMIZATION: Reduced MAX_OBSTACLES to 10 for tight loop
+        const MAX_OBSTACLES = 10;
         const obstacleData = new Float32Array(MAX_OBSTACLES * 3);
         
         obstacles.forEach((op, i) => {
@@ -195,7 +194,7 @@ export const createGrass = (
                 obstacleData[i*3+2] = op.r || 1.5;
             }
         });
-        // Fill remaining slots with zero radius (inactive) or far away
+        // Fill remaining slots
         for(let i = obstacles.length; i < MAX_OBSTACLES; i++) {
              obstacleData[i*3] = 9999;
              obstacleData[i*3+1] = 9999;
@@ -214,13 +213,8 @@ export const createGrass = (
                 uniform vec3 uObstacles[${MAX_OBSTACLES}];
                 attribute float aPhase;
                 
-                // Matches Ground.tsx math
                 float getElevation(vec2 p) {
-                    float e = 0.0;
-                    e += sin(p.x * 0.3) * 0.5;
-                    e += sin(p.y * 0.2) * 0.5;
-                    e += sin(p.x * 0.8 + p.y * 0.6) * 0.1;
-                    return e;
+                    return sin(p.x * 0.3) * 0.5 + sin(p.y * 0.2) * 0.5;
                 }
                 `
             );
@@ -230,48 +224,41 @@ export const createGrass = (
                 `
                 #include <begin_vertex>
                 
-                // 1. Calculate World Position of this vertex (assuming instanceMatrix places chunk)
                 vec4 worldPos = instanceMatrix * vec4(transformed, 1.0);
                 
-                // 2. SMART BORDER DETECTION
-                // Check all obstacles. If inside radius, shrink the blade.
+                // SMART BORDER DETECTION (Squared Distance Optimization)
+                // Avoids sqrt() for every obstacle. 
                 float mask = 1.0;
                 for(int i = 0; i < ${MAX_OBSTACLES}; i++) {
                     vec3 obs = uObstacles[i];
                     if(obs.z > 0.0) {
-                        float dist = distance(worldPos.xz, obs.xy);
-                        // Smoothly scale down grass as it approaches the obstacle
-                        mask *= smoothstep(obs.z * 0.7, obs.z, dist); 
+                        // Squared distance check
+                        vec2 d = worldPos.xz - obs.xy;
+                        float distSq = dot(d, d);
+                        float rSq = obs.z * obs.z;
+                        
+                        // Simple linear falloff approximation without sqrt
+                        if(distSq < rSq) {
+                             // If inside radius, scale down based on closeness
+                             // This is a cheap approximation of smoothstep
+                             float factor = distSq / rSq; 
+                             mask *= factor * factor; // Steep curve
+                        }
                     }
                 }
                 
-                // Apply Mask: shrinks the blade towards its local origin (0,0,0)
-                // Since blade geometry is built from 0 upwards, this scales height and width down.
                 transformed *= mask;
 
-                // 3. Terrain Adhesion (GPU side)
+                // Terrain Adhesion
                 float groundY = -1.5 + getElevation(worldPos.xz) * 0.3;
-                
-                // Move blade to ground level.
-                // We add groundY AFTER masking, so even if shrunk to 0, it sits at correct height (as a point).
                 transformed.y += groundY;
 
-                // 4. Wind Animation
+                // Simple Wind
                 float windFreq = 0.5; 
-                float windAmp = 0.15; 
+                float phase = uTime * windFreq + worldPos.x * 0.1 + aPhase;
+                float sway = sin(phase) * smoothstep(0.0, 1.0, position.y) * 0.15;
                 
-                // Use aPhase (per blade random) + worldPos (per location) for wave
-                float phase = uTime * windFreq + worldPos.x * 0.1 + worldPos.z * 0.1 + aPhase;
-                
-                float sway = sin(phase);
-                // Only sway top of blades (stiffness based on original y height)
-                // Use 'position.y' which is 0..1 from geometry for stiffness mask.
-                float stiffness = smoothstep(0.0, 1.0, position.y);
-                
-                float combinedWind = sway * stiffness * windAmp;
-                
-                transformed.x += combinedWind;
-                transformed.z += combinedWind * 0.2; 
+                transformed.x += sway;
                 `
             );
         };
@@ -280,12 +267,11 @@ export const createGrass = (
         const mesh = new THREE.InstancedMesh(geometry, material, chunkCount);
         mesh.castShadow = false; 
         mesh.receiveShadow = false;
+        mesh.frustumCulled = true; 
 
         const dummy = new THREE.Object3D();
         const color = new THREE.Color();
         const spread = 18; 
-
-        let placedCount = 0;
 
         for (let i = 0; i < chunkCount; i++) {
             let x = 0, z = 0;
@@ -295,19 +281,14 @@ export const createGrass = (
             while (!valid && attempts < 20) {
                 x = (Math.random() - 0.5) * spread;
                 z = (Math.random() - 0.5) * spread;
-                
                 valid = true;
                 
-                // JS Avoidance: MINIMAL
-                // With 8.5m chunks, we let the shader handle nearly all avoidance.
-                // We only check if the chunk CENTER is literally inside an obstacle to save fill rate.
+                // JS Avoidance: Center check only
                 for (const p of obstacles) {
                     const dx = x - p.x;
                     const dz = z - p.z;
-                    const avoidRadius = (p.r || 1.3) * 0.3; // Very permissive
-                    const avoidSq = avoidRadius * avoidRadius;
-                    
-                    if (dx * dx + dz * dz < avoidSq) {
+                    // Loose check
+                    if (dx * dx + dz * dz < 1.0) {
                         valid = false;
                         break;
                     }
@@ -316,31 +297,23 @@ export const createGrass = (
             }
 
             if (!valid) {
-                 dummy.position.set(0, -50, 0); // Hide
+                 dummy.position.set(0, -50, 0); 
                  dummy.updateMatrix();
                  mesh.setMatrixAt(i, dummy.matrix);
                  continue;
             }
-
-            placedCount++;
             
-            // Place chunk
             dummy.position.set(x, 0, z);
             dummy.rotation.y = Math.random() * Math.PI * 2;
             dummy.scale.setScalar(1.0);
-            
             dummy.updateMatrix();
             mesh.setMatrixAt(i, dummy.matrix);
 
             // COLOR PALETTE
             const v = Math.random();
-            if (v > 0.6) {
-                color.setHex(0xB2D8B2); 
-            } else if (v > 0.2) {
-                color.setHex(0x88C488); 
-            } else {
-                color.setHex(0x66A566); 
-            }
+            if (v > 0.6) color.setHex(0xB2D8B2); 
+            else if (v > 0.2) color.setHex(0x88C488); 
+            else color.setHex(0x66A566);
             color.offsetHSL((Math.random() - 0.5) * 0.05, 0, 0);
             mesh.setColorAt(i, color);
         }

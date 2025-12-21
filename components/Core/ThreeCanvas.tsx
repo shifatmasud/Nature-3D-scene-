@@ -25,15 +25,19 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
     const scene = new THREE.Scene();
     
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    camera.position.set(0, 5, 12); // Slightly higher starting position
+    camera.position.set(0, 5, 12); 
 
+    // PERFORMANCE OPTIMIZATION: Low-Mid Quality Settings
     const renderer = new THREE.WebGLRenderer({ 
-      antialias: true, 
+      antialias: false, // DISABLED for performance
       alpha: false,
-      powerPreference: 'high-performance'
+      powerPreference: 'high-performance',
+      stencil: false, // Disable stencil buffer if not needed
+      depth: true
     });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Cap pixel ratio at 1.5 to prevents lag on high-DPI mobile screens
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     
     containerRef.current.appendChild(renderer.domElement);

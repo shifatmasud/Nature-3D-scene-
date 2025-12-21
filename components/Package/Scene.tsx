@@ -34,8 +34,9 @@ const Scene = () => {
     const sunLight = new THREE.DirectionalLight(0xFFF9E6, 1.8);
     sunLight.position.set(8, 25, 8); // Higher sun for trees
     sunLight.castShadow = true;
-    sunLight.shadow.mapSize.width = 1024; 
-    sunLight.shadow.mapSize.height = 1024;
+    // PERFORMANCE: Reduced shadow map size for mid-low tier
+    sunLight.shadow.mapSize.width = 512; 
+    sunLight.shadow.mapSize.height = 512;
     sunLight.shadow.camera.near = 0.5;
     sunLight.shadow.camera.far = 60;
     sunLight.shadow.camera.left = -20;
@@ -151,7 +152,8 @@ const Scene = () => {
     ];
     
     // Create Grass
-    // 25 Chunks * 500 Blades = 12500 Blades (Massive Density)
+    // 25 Chunks * 300 Blades = 7,500 Blades
+    // Very lightweight configuration
     const grass = createGrass(scene, camera, theme, 25, obstacles);
 
     // Store update functions
