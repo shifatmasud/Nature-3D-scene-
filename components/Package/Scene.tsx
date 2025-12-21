@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -9,9 +10,11 @@ import ThreeCanvas from '../Core/ThreeCanvas.tsx';
 import { useTheme } from '../../Theme.tsx';
 import { createBushes } from './ProceduralBush.tsx';
 import { createTrees } from './ProceduralTree.tsx';
+import { createPineTrees } from './ProceduralPineTree.tsx';
 import { createGround } from './Ground.tsx';
 import { createGrass } from './ProceduralGrass.tsx';
 import { createRocks } from './ProceduralRock.tsx';
+import { createFlowers } from './ProceduralFlower.tsx';
 
 const Scene = () => {
   const { theme } = useTheme();
@@ -58,8 +61,7 @@ const Scene = () => {
     // --- SCENE LAYOUT (Director) ---
     
     const spread = 18; 
-    const minDistSq = 2.5 * 2.5; // generic minimum distance
-
+    
     // 1. ROCKS (Priority 1: Large Obstacles)
     const rockCount = 6;
     const rockPositions: {x: number, z: number}[] = [];
@@ -70,7 +72,7 @@ const Scene = () => {
         });
     }
 
-    // 2. TREES (Priority 2)
+    // 2. REGULAR TREES (Priority 2)
     const treeCount = 5;
     const treePositions: {x: number, z: number}[] = [];
     for(let i=0; i<treeCount; i++) {
@@ -80,30 +82,63 @@ const Scene = () => {
             z = (Math.random() - 0.5) * spread;
             valid = true;
             
-            // Check Rocks (Large Buffer)
+            // Check Rocks (3m buffer)
             for(const r of rockPositions) {
                 const dx = x - r.x;
                 const dz = z - r.z;
-                if(dx*dx + dz*dz < 9) { // 3m buffer for rocks
-                    valid = false; break;
-                }
+                if(dx*dx + dz*dz < 9) { valid = false; break; }
             }
             if (!valid) { attempts++; continue; }
 
-            // Check Trees
+            // Check Self (3m buffer)
             for(const t of treePositions) {
                 const dx = x - t.x;
                 const dz = z - t.z;
-                if(dx*dx + dz*dz < 9) { // 3m buffer between trees
-                    valid = false; break;
-                }
+                if(dx*dx + dz*dz < 9) { valid = false; break; }
             }
             attempts++;
         }
         if(valid) treePositions.push({x, z});
     }
 
-    // 3. BUSHES (Priority 3: Filler)
+    // 3. PINE TREES (Priority 3)
+    const pineCount = 5;
+    const pinePositions: {x: number, z: number}[] = [];
+    for(let i=0; i<pineCount; i++) {
+        let x = 0, z = 0, valid = false, attempts = 0;
+        while(!valid && attempts < 20) {
+            x = (Math.random() - 0.5) * spread;
+            z = (Math.random() - 0.5) * spread;
+            valid = true;
+            
+            // Check Rocks (3m buffer)
+            for(const r of rockPositions) {
+                const dx = x - r.x;
+                const dz = z - r.z;
+                if(dx*dx + dz*dz < 9) { valid = false; break; }
+            }
+            if (!valid) { attempts++; continue; }
+
+            // Check Regular Trees (3m buffer)
+            for(const t of treePositions) {
+                const dx = x - t.x;
+                const dz = z - t.z;
+                if(dx*dx + dz*dz < 9) { valid = false; break; }
+            }
+            if (!valid) { attempts++; continue; }
+
+             // Check Self (3m buffer)
+             for(const p of pinePositions) {
+                const dx = x - p.x;
+                const dz = z - p.z;
+                if(dx*dx + dz*dz < 9) { valid = false; break; }
+            }
+            attempts++;
+        }
+        if(valid) pinePositions.push({x, z});
+    }
+
+    // 4. BUSHES (Priority 4: Filler)
     const bushCount = 10;
     const bushPositions: {x: number, z: number}[] = [];
     for(let i=0; i<bushCount; i++) {
@@ -113,38 +148,84 @@ const Scene = () => {
             z = (Math.random() - 0.5) * spread;
             valid = true;
             
-            // Check Rocks
+            // Check Rocks (2m)
             for(const r of rockPositions) {
                 const dx = x - r.x;
                 const dz = z - r.z;
-                if(dx*dx + dz*dz < 4) { // 2m buffer
-                    valid = false; break;
-                }
+                if(dx*dx + dz*dz < 4) { valid = false; break; }
             }
             if(!valid) { attempts++; continue; }
 
-            // Check Trees
+            // Check Regular Trees (2m)
             for(const t of treePositions) {
                 const dx = x - t.x;
                 const dz = z - t.z;
-                if(dx*dx + dz*dz < 4) { // 2m buffer
-                    valid = false; break;
-                }
+                if(dx*dx + dz*dz < 4) { valid = false; break; }
             }
+            if(!valid) { attempts++; continue; }
+
+             // Check Pine Trees (2m)
+             for(const p of pinePositions) {
+                const dx = x - p.x;
+                const dz = z - p.z;
+                if(dx*dx + dz*dz < 4) { valid = false; break; }
+            }
+            if(!valid) { attempts++; continue; }
+
             attempts++;
         }
         if(valid) bushPositions.push({x, z});
     }
 
+    // 5. FLOWERS (Priority 5: Detail Decoration)
+    const flowerCount = 80; // Scatter plenty
+    const flowerPositions: {x: number, z: number}[] = [];
+    for(let i=0; i<flowerCount; i++) {
+        let x = 0, z = 0, valid = false, attempts = 0;
+        while(!valid && attempts < 10) {
+            x = (Math.random() - 0.5) * spread;
+            z = (Math.random() - 0.5) * spread;
+            valid = true;
+            
+            // Check Rocks (2.5m) - UPDATED: Increased radius for large rocks
+            for(const r of rockPositions) {
+                const dx = x - r.x;
+                const dz = z - r.z;
+                if(dx*dx + dz*dz < 6.25) { valid = false; break; }
+            }
+            if(!valid) { attempts++; continue; }
+
+            // Check Trees (1.5m) - UPDATED: Increased radius
+            for(const t of treePositions) {
+                const dx = x - t.x;
+                const dz = z - t.z;
+                if(dx*dx + dz*dz < 2.25) { valid = false; break; }
+            }
+            if(!valid) { attempts++; continue; }
+            
+             // Check Pines (1.5m) - UPDATED: Increased radius
+             for(const p of pinePositions) {
+                const dx = x - p.x;
+                const dz = z - p.z;
+                if(dx*dx + dz*dz < 2.25) { valid = false; break; }
+            }
+            if(!valid) { attempts++; continue; }
+
+            attempts++;
+        }
+        if(valid) flowerPositions.push({x, z});
+    }
+
+
     // --- OBJECT CREATION ---
     const ground = createGround(scene, theme);
     const rocks = createRocks(scene, theme, rockPositions);
     const trees = createTrees(scene, camera, theme, treePositions);
+    const pines = createPineTrees(scene, camera, theme, pinePositions);
     const bushes = createBushes(scene, camera, theme, bushPositions);
+    const flowers = createFlowers(scene, theme, flowerPositions);
 
     // Combine obstacles for grass "Smart Detection"
-    // Rocks: Larger masking radius to keep grass off the stone
-    // Bushes: Medium radius
     // Trees: EXCLUDED (Grass should grow under trees)
     const obstacles = [
         ...rockPositions.map(p => ({...p, r: 2.3})),
@@ -152,20 +233,28 @@ const Scene = () => {
     ];
     
     // Create Grass
-    // 25 Chunks * 300 Blades = 7,500 Blades
-    // Very lightweight configuration
     const grass = createGrass(scene, camera, theme, 25, obstacles);
 
     // Store update functions
-    updatablesRef.current = [bushes.update, trees.update, rocks.update, ground.update, grass.update];
+    updatablesRef.current = [
+        bushes.update, 
+        trees.update, 
+        pines.update, 
+        rocks.update, 
+        ground.update, 
+        grass.update,
+        flowers.update
+    ];
 
     // --- CLEANUP ---
     return () => {
       bushes.cleanup();
       trees.cleanup();
+      pines.cleanup();
       rocks.cleanup();
       ground.cleanup();
       grass.cleanup();
+      flowers.cleanup();
       controls.dispose();
       updatablesRef.current = [];
     };

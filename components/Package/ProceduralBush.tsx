@@ -172,7 +172,8 @@ export const createBushes = (
         let instanceIndex = 0;
 
         for (let i = 0; i < count; i++) {
-            const structureScale = 3.0 + Math.random() * 2.0; 
+            // UPDATED: Bigger bushes
+            const structureScale = 4.0 + Math.random() * 3.0; 
             const visualRadius = baseRadius * structureScale;
             
             const p = positions[i];
@@ -180,7 +181,8 @@ export const createBushes = (
             const groundHeight = getGroundElevation(p.x, p.z) * displacementScale;
             const baseHeight = -1.5;
             
-            const sinkAmount = 0.2;
+            // UPDATED: Less sinking to keep them higher up
+            const sinkAmount = 0.05;
             const centerY = baseHeight + groundHeight + visualRadius - sinkAmount;
             const center = new THREE.Vector3(p.x, centerY, p.z);
 
@@ -196,7 +198,8 @@ export const createBushes = (
                 dummy.lookAt(leafPos.clone().add(_norm));
                 dummy.rotateZ(Math.random() * Math.PI * 2);
 
-                const leafScaleBase = 2.0; 
+                // UPDATED: Bigger leaves to match bush scale
+                const leafScaleBase = 2.5; 
                 const s = (0.8 + Math.random() * 0.6) * leafScaleBase; 
                 dummy.scale.set(s, s, s);
                 dummy.updateMatrix();

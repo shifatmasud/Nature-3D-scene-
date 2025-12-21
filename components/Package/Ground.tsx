@@ -83,9 +83,6 @@ export const createGround = (scene: THREE.Scene, theme: any) => {
       float mixFactor = smoothstep(-1.0, 1.0, vElevation);
       vec3 groundColor = mix(uColorLow, uColorHigh, mixFactor);
       diffuseColor.rgb = groundColor;
-      // Very faint grid
-      float grid = step(0.98, fract(vGroundUv.x * 20.0)) + step(0.98, fract(vGroundUv.y * 20.0));
-      diffuseColor.rgb += vec3(grid * 0.05); 
       `
     );
   };
