@@ -1,4 +1,5 @@
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -20,7 +21,7 @@ const mulberry32 = (a: number) => {
 // TEXTURE GENERATION: Stylized "Bottle Brush" Pine Bough
 // More detail than a blob, but still soft and friendly (no sharp pixelated needles)
 const createFriendlyPineTexture = () => {
-  const size = 128; // Increased resolution for detail
+  const size = 64; // OPTIMIZED: Reduced resolution to 64px
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -127,7 +128,7 @@ export const createPineTrees = (
 
         // MATERIALS
         const trunkMaterial = new THREE.MeshStandardMaterial({
-            color: 0x3d2e24, 
+            color: 0xBEB28D, 
             roughness: 1.0,
             metalness: 0.0,
             flatShading: true,

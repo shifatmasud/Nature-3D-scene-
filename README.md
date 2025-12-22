@@ -1,3 +1,4 @@
+
 # React 18 Starter with Gemini API
 
 This is a starter project for building modern, theme-aware React applications. It's set up with a modular structure, a powerful design system, and is ready for you to integrate the Gemini API.
@@ -15,8 +16,13 @@ Imagine you're building with LEGOs. This project gives you a super organized box
 -   **`components/`**: The LEGO pieces themselves!
     -   **`Core/`**: The most basic, single-purpose pieces.
         -   `ThemeToggleButton.tsx`: A button to switch between light and dark themes.
+        -   `ThreeCanvas.tsx`: The stage for our 3D world.
+    -   **`Package/`**: More complex pieces made from Core components.
+        -   `Scene.tsx`: The entire 3D world, with trees, ground, sky, and lights.
+        -   `PerformanceSettings.tsx`: A pop-up menu to change graphics settings to make the app run faster.
+        -   ... and all the procedural files for creating objects (`ProceduralBush.tsx`, `ProceduralTree.tsx`, etc.)
     -   **`Page/`**: Full pages made by combining smaller components.
-        -   `Welcome.tsx`: The first screen you see, which says "Welcome!".
+        -   `Welcome.tsx`: The first screen you see, which holds the 3D scene and the UI buttons.
 -   **`README.md`**: This file! Your friendly guide to the project.
 -   **`LLM.md`**: Special instructions for AI helpers who might work on this code.
 -   **`noteBook.md`**: A diary of all the tasks and features we're working on.
@@ -28,7 +34,20 @@ Imagine you're building with LEGOs. This project gives you a super organized box
 .
 ├── components/
 │   ├── Core/
-│   │   └── ThemeToggleButton.tsx
+│   │   ├── ThemeToggleButton.tsx
+│   │   └── ThreeCanvas.tsx
+│   ├── Package/
+│   │   ├── Ground.tsx
+│   │   ├── PerformanceSettings.tsx
+│   │   ├── ProceduralBush.tsx
+│   │   ├── ProceduralFirefly.tsx
+│   │   ├── ProceduralFlower.tsx
+│   │   ├── ProceduralGrass.tsx
+│   │   ├── ProceduralPineTree.tsx
+│   │   ├── ProceduralRock.tsx
+│   │   ├── ProceduralTree.tsx
+│   │   ├── Scene.tsx
+│   │   └── Sky.tsx
 │   └── Page/
 │       └── Welcome.tsx
 ├── hooks/

@@ -1,5 +1,4 @@
 
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -110,8 +109,8 @@ export const createSky = (scene: THREE.Scene, theme: any) => {
     let cleanup = () => {};
 
     try {
-        // REDUCED GEOMETRY SEGMENTS for ultra low-res look
-        const geometry = new THREE.SphereGeometry(600, 16, 16);
+        // OPTIMIZED: Reduced geometry segments to 12x12 for low-res sky dome
+        const geometry = new THREE.SphereGeometry(600, 12, 12);
         
         const uniforms = {
             uTime: { value: 0 },

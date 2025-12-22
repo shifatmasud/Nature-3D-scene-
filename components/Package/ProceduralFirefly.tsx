@@ -1,4 +1,5 @@
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -48,7 +49,6 @@ export const createFireflies = (
                 uniform float uTime;
                 attribute float aPhase;
                 attribute float aScale;
-                attribute vec3 aBasePos;
                 varying float vType;
                 attribute float aType; // 0 = Gold, 1 = Purple
                 varying vec3 vWorldPosition; // Pass world position for fragment LOD
@@ -61,26 +61,35 @@ export const createFireflies = (
                 #include <begin_vertex>
                 vType = aType;
                 
-                // Floating Animation
-                float t = uTime * 0.5 + aPhase;
+                // Pulse Size Animation
+                float t_pulse = uTime * 0.5 + aPhase;
+                float pulse = 0.8 + 0.4 * sin(t_pulse * 3.0);
+                vec3 pulsedPos = position * aScale * pulse;
                 
+                // Start with the base instance position
+                vec4 worldPos = instanceMatrix * vec4(pulsedPos, 1.0);
+                
+                // Add world-space floating animation
+                float t_float = uTime * 0.5 + aPhase;
                 vec3 offset = vec3(
-                    sin(t * 1.5) * 0.5,
-                    sin(t * 2.0) * 0.5,
-                    cos(t * 1.5) * 0.5
+                    sin(t_float * 1.5) * 0.5,
+                    sin(t_float * 2.0) * 0.5,
+                    cos(t_float * 1.5) * 0.5
                 );
+                worldPos.xyz += offset;
                 
-                vec3 newPos = aBasePos + offset;
-                
-                // Pulse Size
-                float pulse = 0.8 + 0.4 * sin(t * 3.0);
-                transformed = position * aScale * pulse;
-                
-                transformed += offset; 
+                // Final transformed position (re-projected from world)
+                vec4 mvPosition = viewMatrix * worldPos;
+                gl_Position = projectionMatrix * mvPosition;
 
-                vWorldPosition = (modelMatrix * instanceMatrix * vec4(transformed, 1.0)).xyz;
+                vWorldPosition = worldPos.xyz;
                 `
             );
+             shader.vertexShader = shader.vertexShader.replace(
+                '#include <project_vertex>',
+                `// Replaced by custom logic in <begin_vertex>`
+             );
+
 
             shader.fragmentShader = `
                 uniform vec3 uCameraPos;
@@ -118,13 +127,11 @@ export const createFireflies = (
         };
 
         const mesh = new THREE.InstancedMesh(geometry, material, count);
-        mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
         const dummy = new THREE.Object3D();
         const phases = new Float32Array(count);
         const types = new Float32Array(count);
         const scales = new Float32Array(count);
-        const basePos = new Float32Array(count * 3);
 
         for (let i = 0; i < count; i++) {
             const x = (Math.random() - 0.5) * bounds.width;

@@ -1,3 +1,5 @@
+
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -9,7 +11,7 @@ import * as THREE from 'three';
 // --- HELPERS ---
 
 const createGrassTuftTexture = () => {
-  const size = 128; 
+  const size = 128; // Increased resolution for better detail
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -17,7 +19,7 @@ const createGrassTuftTexture = () => {
 
   ctx.clearRect(0, 0, size, size);
 
-  const drawBlade = (x: number, y: number, width: number, height: number, lean: number) => {
+  const drawBlade = (x: number, y: number, width: number, height: number, lean: number, alpha: number) => {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(lean); 
@@ -25,34 +27,35 @@ const createGrassTuftTexture = () => {
     ctx.beginPath();
     ctx.moveTo(-width / 2, 0); 
     
-    // UPDATED: Curvy Blade Shape (Asymmetric Bezier)
-    // Left side curves inward
     ctx.quadraticCurveTo(-width * 0.1, -height * 0.5, 0, -height); 
-    // Right side curves outward then in
     ctx.quadraticCurveTo(width * 0.6, -height * 0.5, width / 2, 0); 
     
     ctx.closePath();
     
+    // Softer gradient for a more Ghibli-esque feel
     const grad = ctx.createLinearGradient(0, -height, 0, 0);
-    grad.addColorStop(0, 'rgba(255, 255, 255, 1.0)'); 
-    grad.addColorStop(1, 'rgba(140, 180, 140, 1.0)'); 
+    grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`); 
+    grad.addColorStop(0.8, `rgba(200, 220, 200, ${alpha})`);
+    grad.addColorStop(1, `rgba(140, 180, 140, ${alpha})`); 
     
     ctx.fillStyle = grad;
     ctx.fill();
     ctx.restore();
   };
 
-  const bladeCount = 5; 
+  // Create a dense, soft clump by layering multiple blades
+  const bladeCount = 40; 
   for (let i = 0; i < bladeCount; i++) {
-    const x = size / 2 + (Math.random() - 0.5) * (size * 0.5);
+    // Distribute blades in a tight cluster at the bottom center
+    const x = size / 2 + (Math.random() - 0.5) * (size * 0.6);
     const y = size; 
     
-    const width = (size * 0.12) + Math.random() * (size * 0.08); 
-    const height = (size * 0.35) + Math.random() * (size * 0.3);
-    // Increased lean range for more organic look
-    const lean = (Math.random() - 0.5) * 0.6; 
+    const width = (size * 0.08) + Math.random() * (size * 0.06); 
+    const height = (size * 0.5) + Math.random() * (size * 0.4);
+    const lean = (Math.random() - 0.5) * 0.5; 
+    const alpha = 0.7 + Math.random() * 0.3; // Alpha variation for depth
     
-    drawBlade(x, y, width, height, lean);
+    drawBlade(x, y, width, height, lean, alpha);
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -61,6 +64,7 @@ const createGrassTuftTexture = () => {
   texture.magFilter = THREE.LinearFilter;
   return texture;
 };
+
 
 // --- CHUNK GEOMETRY GENERATOR ---
 
@@ -94,10 +98,11 @@ const createGrassChunkGeometry = (bladesPerChunk: number, chunkSize: number) => 
     2, 3, 4,  3, 5, 4  // Top Quad
   ];
   
-  // 2 planes for a cross
+  // UPDATED: From 2 planes ('+') to 3 planes ('*') for a fuller, fluffier look
   const planes = [
     { angle: 0 },
-    { angle: Math.PI / 2 }
+    { angle: (Math.PI * 2) / 3 },     // 120 degrees
+    { angle: (Math.PI * 2) / 3 * 2 }  // 240 degrees
   ];
 
   let vertOffset = 0;
@@ -110,8 +115,6 @@ const createGrassChunkGeometry = (bladesPerChunk: number, chunkSize: number) => 
     const scaleH = scale * (0.8 + Math.random() * 0.4);
 
     const rotY = Math.random() * Math.PI * 2;
-    const cosY = Math.cos(rotY);
-    const sinY = Math.sin(rotY);
 
     const phase = Math.random() * Math.PI * 2;
 
@@ -214,8 +217,13 @@ export const createGrass = (
                 uniform vec3 uObstacles[${MAX_OBSTACLES}];
                 attribute float aPhase;
                 
+                // FIX: Synchronized with Ground.tsx shader
                 float getElevation(vec2 p) {
-                    return sin(p.x * 0.3) * 0.5 + sin(p.y * 0.2) * 0.5;
+                    float e = 0.0;
+                    e += sin(p.x * 0.3) * 0.5;
+                    e += sin(p.y * 0.2) * 0.5;
+                    e += sin(p.x * 0.8 + p.y * 0.6) * 0.1;
+                    return e;
                 }
                 `
             );
@@ -225,7 +233,7 @@ export const createGrass = (
                 `
                 #include <begin_vertex>
                 
-                vec4 worldPos = instanceMatrix * vec4(transformed, 1.0);
+                vec4 worldPos = instanceMatrix * vec4(position, 1.0);
                 
                 // SMART BORDER DETECTION
                 float mask = 1.0;
@@ -310,6 +318,7 @@ export const createGrass = (
             dummy.rotation.y = Math.random() * Math.PI * 2;
             dummy.scale.setScalar(1.0);
             dummy.updateMatrix();
+            // FIX: Pass the transformation matrix, not the color object.
             mesh.setMatrixAt(i, dummy.matrix);
 
             const v = Math.random();

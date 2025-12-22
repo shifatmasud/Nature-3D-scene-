@@ -1,3 +1,5 @@
+
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -184,13 +186,13 @@ export const createTrees = (
         };
 
         // SETUP INSTANCING
-        const branchesPerTree = 12; // INCREASED: More branches
+        const branchesPerTree = 15; 
         const woodInstances = count * (1 + branchesPerTree); // 1 Trunk + N Branches
         const woodMesh = new THREE.InstancedMesh(woodGeo, trunkMaterial, woodInstances);
         woodMesh.castShadow = true;
         woodMesh.receiveShadow = true;
 
-        const leavesPerCluster = 140; // INCREASED: Very dense leaf clusters
+        const leavesPerCluster = 300; 
         // 1 Main Cluster (Top) + N Branch Clusters
         const totalLeaves = count * (1 + branchesPerTree) * leavesPerCluster;
         const leafMesh = new THREE.InstancedMesh(leafGeo, leafMaterial, totalLeaves);

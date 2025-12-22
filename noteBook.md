@@ -1,3 +1,4 @@
+
 # Developer Notebook
 
 A log of all tasks, ideas, and progress for this project.
@@ -6,7 +7,6 @@ A log of all tasks, ideas, and progress for this project.
 
 -   [ ] Integrate Gemini API for a core feature.
 -   [ ] Create a more complex page layout.
--   [ ] Add interactive 3D elements with Three.js.
 
 ## In Progress
 
@@ -14,6 +14,7 @@ A log of all tasks, ideas, and progress for this project.
 
 ## Done
 
+-   **[2024-05-22 10:30]**: Implemented a performance settings panel to control resolution, shadows, and effects (fireflies), addressing FPS drop issues. Users can now dynamically adjust graphics for better performance.
 -   **[2024-05-22 10:00]**: Adjusted `Scene.tsx` lighting and fog parameters to create a significantly lighter and more peaceful, anime-like night scene. This involved brightening `nightHemiGround`, `nightHemiSky`, increasing `moonLight.intensity`, boosting night `hemiLight.intensity`, and lightening `nightFog`.
 -   **[2024-05-22 09:30]**: Implemented ultra performance optimizations for `Sky` and `ProceduralFirefly` components: reduced `SphereGeometry` segments for both, and added shader-based LOD (distance-based fading) to fireflies for performance. Fixed a camera dependency issue in `ProceduralFirefly.tsx`.
 -   **[2024-05-21 13:45]**: Adjusted `ProceduralGrass` resolution to 128px and lowered alpha test threshold to 0.4. This creates a balance between sharp anime silhouettes and smooth, non-aliased rendering.

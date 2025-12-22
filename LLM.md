@@ -1,3 +1,4 @@
+
 # LLM Instructions
 
 Hello! You are an AI assistant helping to build this React application. Here are some simple instructions to follow.
@@ -11,6 +12,18 @@ Hello! You are an AI assistant helping to build this React application. Here are
 -   `Theme.tsx`
 -   `hooks/useBreakpoint.tsx`
 -   `components/Core/ThemeToggleButton.tsx`
+-   `components/Core/ThreeCanvas.tsx`
+-   `components/Package/Ground.tsx`
+-   `components/Package/PerformanceSettings.tsx`
+-   `components/Package/ProceduralBush.tsx`
+-   `components/Package/ProceduralFirefly.tsx`
+-   `components/Package/ProceduralFlower.tsx`
+-   `components/Package/ProceduralGrass.tsx`
+-   `components/Package/ProceduralPineTree.tsx`
+-   `components/Package/ProceduralRock.tsx`
+-   `components/Package/ProceduralTree.tsx`
+-   `components/Package/Scene.tsx`
+-   `components/Package/Sky.tsx`
 -   `components/Page/Welcome.tsx`
 -   `README.md`
 -   `LLM.md`

@@ -1,14 +1,32 @@
+
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../../Theme.tsx';
 import ThemeToggleButton from '../Core/ThemeToggleButton.tsx';
 import Scene from '../Package/Scene.tsx';
+import PerformanceSettingsPanel from '../Package/PerformanceSettings.tsx';
+import { motion } from 'framer-motion';
+
+export type PerformanceSettings = {
+  resolution: 'high' | 'balanced' | 'performance' | 'ultra';
+  shadows: boolean;
+  effects: boolean;
+  antiAliasing: boolean;
+};
 
 const Welcome = () => {
   const { theme } = useTheme();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [performanceSettings, setPerformanceSettings] = useState<PerformanceSettings>({
+    resolution: 'balanced',
+    shadows: true,
+    effects: true,
+    antiAliasing: false, // Disabled by default to use Ethereal Fake AA
+  });
 
   const styles: { [key: string]: React.CSSProperties } = {
     container: {
@@ -23,15 +41,52 @@ const Welcome = () => {
       overflow: 'hidden',
       backgroundColor: theme.Color.Base.Surface[1],
     },
+    settingsButton: {
+        position: 'absolute',
+        top: theme.spacing['Space.L'],
+        right: `calc(${theme.spacing['Space.L']} + 44px + ${theme.spacing['Space.S']})`,
+        width: '44px',
+        height: '44px',
+        borderRadius: theme.radius['Radius.Full'],
+        backgroundColor: theme.Color.Base.Surface['2'],
+        border: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: theme.Color.Base.Content['2'],
+        boxShadow: theme.effects['Effect.Shadow.Drop.1'],
+        overflow: 'hidden',
+    },
+     icon: {
+      fontSize: '24px',
+      lineHeight: 0,
+    }
   };
 
   return (
     <div style={styles.container}>
-      {/* 3D Scene Layer */}
-      <Scene />
-
-      {/* UI Overlay Layer */}
+      <Scene performanceSettings={performanceSettings} />
+      
+      <motion.button
+        style={styles.settingsButton}
+        onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+        aria-label="Open performance settings"
+        whileHover={{ scale: 1.1, boxShadow: theme.effects['Effect.Shadow.Drop.2'] }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ duration: 0.2 }}
+      >
+        <i className="ph ph-gear" style={styles.icon} />
+      </motion.button>
+      
       <ThemeToggleButton />
+
+      <PerformanceSettingsPanel
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={performanceSettings}
+        setSettings={setPerformanceSettings}
+      />
     </div>
   );
 };

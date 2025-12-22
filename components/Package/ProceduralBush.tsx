@@ -1,3 +1,5 @@
+
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -156,7 +158,7 @@ export const createBushes = (
           );
         };
 
-        const leavesPerBush = 100; 
+        const leavesPerBush = 250; 
         const totalInstances = count * leavesPerBush;
         
         const instancedMesh = new THREE.InstancedMesh(planeGeo, material, totalInstances);

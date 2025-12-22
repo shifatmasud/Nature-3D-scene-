@@ -1,3 +1,5 @@
+
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -23,7 +25,8 @@ export const createGround = (scene: THREE.Scene, theme: any) => {
     roughness: 1.0, // Fully matte for anime look
     metalness: 0.0,
     flatShading: false, 
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    fog: true, // Allow this material to be affected by scene fog
   });
 
   const customUniforms = { 
