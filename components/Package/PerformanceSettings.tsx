@@ -19,6 +19,8 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
   const { theme } = useTheme();
   const breakpoint = useBreakpoint();
   const isMobile = breakpoint === 'mobile';
+  const isTablet = breakpoint === 'tablet';
+  const useMobileLayout = isMobile || isTablet;
 
   const handleResolutionChange = (res: 'ultra' | 'performance' | 'balanced' | 'high') => {
     if (res === 'ultra') {
@@ -37,15 +39,15 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
       width: '100%',
       height: '100%',
       zIndex: 90,
-      backgroundColor: isMobile ? 'rgba(0,0,0,0.2)' : 'transparent',
+      backgroundColor: useMobileLayout ? 'rgba(0,0,0,0.2)' : 'transparent',
     },
     panel: {
       position: 'fixed',
-      top: isMobile ? 'auto' : `calc(${theme.spacing['Space.L']} + 44px + ${theme.spacing['Space.M']})`,
-      bottom: isMobile ? theme.spacing['Space.L'] : 'auto',
-      right: isMobile ? theme.spacing['Space.L'] : theme.spacing['Space.L'],
-      left: isMobile ? theme.spacing['Space.L'] : 'auto',
-      width: isMobile ? 'auto' : '320px',
+      top: useMobileLayout ? 'auto' : `calc(${theme.spacing['Space.L']} + 44px + ${theme.spacing['Space.M']})`,
+      bottom: useMobileLayout ? theme.spacing['Space.L'] : 'auto',
+      right: useMobileLayout ? theme.spacing['Space.L'] : theme.spacing['Space.L'],
+      left: useMobileLayout ? theme.spacing['Space.L'] : 'auto',
+      width: useMobileLayout ? 'auto' : '320px',
       padding: theme.spacing['Space.L'],
       backgroundColor: theme.Color.Base.Surface['2'],
       borderRadius: theme.radius['Radius.L'],
@@ -65,10 +67,10 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
     },
     settingRow: {
       display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
+      flexDirection: useMobileLayout ? 'column' : 'row',
       justifyContent: 'space-between',
-      alignItems: isMobile ? 'flex-start' : 'center',
-      gap: isMobile ? theme.spacing['Space.S'] : '0',
+      alignItems: useMobileLayout ? 'flex-start' : 'center',
+      gap: useMobileLayout ? theme.spacing['Space.S'] : '0',
     },
     label: {
       ...theme.Type.Readable.Body.M,
@@ -88,9 +90,9 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
       transition: `background-color ${theme.time['Time.2x']}, color ${theme.time['Time.2x']}`,
       backgroundColor: 'transparent',
       color: theme.Color.Base.Content['2'],
-      flex: isMobile ? '1 0 auto' : '0 1 auto',
+      flex: useMobileLayout ? '1 0 auto' : '0 1 auto',
       textAlign: 'center',
-      minWidth: isMobile ? '70px' : 'auto',
+      minWidth: useMobileLayout ? '70px' : 'auto',
     },
     activeButton: {
       backgroundColor: theme.Color.Accent.Surface['1'],
@@ -107,8 +109,8 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
   const panelVariants = {
     hidden: { 
       opacity: 0, 
-      y: isMobile ? 40 : -20, 
-      scale: isMobile ? 1 : 0.95 
+      y: useMobileLayout ? 40 : -20, 
+      scale: useMobileLayout ? 1 : 0.95 
     },
     visible: { 
       opacity: 1, 

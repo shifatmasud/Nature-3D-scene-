@@ -38,6 +38,7 @@ const ThemeToggleButton = () => {
       overflow: 'hidden', // Ensures icons don't pop out during animation
     },
     icon: {
+      position: 'absolute', // FIX: Added position absolute for proper AnimatePresence behavior
       fontSize: '24px',
       lineHeight: 0, // Prevents layout shifts from line-height
     }

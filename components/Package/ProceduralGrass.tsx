@@ -1,9 +1,11 @@
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import * as THREE from 'three';
+// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
+import { CanvasTexture, SRGBColorSpace, LinearMipmapLinearFilter, LinearFilter, BufferGeometry, Float32BufferAttribute, Scene, Camera, Frustum, Vector3, MeshStandardMaterial, DoubleSide, Matrix4, Color, Object3D, Box3, InstancedMesh, InstancedBufferAttribute } from 'three';
 import { ZONE_COLORS } from './LayoutMap.tsx';
 
 // --- HELPERS ---
@@ -63,17 +65,17 @@ const createGrassTuftTexture = () => {
     drawBlade(x, y, width, height, lean, alpha);
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.minFilter = THREE.LinearMipmapLinearFilter; 
-  texture.magFilter = THREE.LinearFilter;
+  const texture = new CanvasTexture(canvas);
+  texture.colorSpace = SRGBColorSpace;
+  texture.minFilter = LinearMipmapLinearFilter; 
+  texture.magFilter = LinearFilter;
   return texture;
 };
 
 
 // --- GEOMETRY GENERATOR FOR A SINGLE TUFT ---
 const createTuftGeometry = () => {
-    const geometry = new THREE.BufferGeometry();
+    const geometry = new BufferGeometry();
     
     const positions: number[] = [];
     const uvs: number[] = [];
@@ -111,9 +113,9 @@ const createTuftGeometry = () => {
         vertOffset += 6;
     });
 
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
+    geometry.setAttribute('normal', new Float32BufferAttribute(normals, 3));
     geometry.setIndex(indices);
     geometry.computeBoundingSphere();
     
@@ -122,8 +124,8 @@ const createTuftGeometry = () => {
 
 // --- LOGIC ---
 export const createGrass = (
-    scene: THREE.Scene, 
-    camera: THREE.Camera, 
+    scene: Scene, 
+    camera: Camera, 
     theme: any, 
     tuftCount: number, 
     obstacles: {x: number, z: number, r?: number}[] = [],
@@ -135,7 +137,7 @@ export const createGrass = (
     Math.random = rng;
 
     let cleanup = () => {};
-    let update = (time: number, frustum: THREE.Frustum) => {};
+    let update = (time: number, frustum: Frustum) => {};
 
     try {
         const SPREAD = 20.0;
@@ -144,15 +146,15 @@ export const createGrass = (
 
         const customUniforms = { 
             uTime: { value: 0 },
-            uCameraPosition: { value: new THREE.Vector3() },
+            uCameraPosition: { value: new Vector3() },
         };
 
         const grassTexture = createGrassTuftTexture();
         const sharedGeometry = createTuftGeometry();
-        const sharedMaterial = new THREE.MeshStandardMaterial({
+        const sharedMaterial = new MeshStandardMaterial({
             map: grassTexture,
             alphaTest: 0.1, 
-            side: THREE.DoubleSide,
+            side: DoubleSide,
             color: 0xffffff,
             roughness: 1.0, 
             metalness: 0,
@@ -289,10 +291,10 @@ export const createGrass = (
         };
         
         // --- CLUSTER GENERATION ---
-        type TuftData = { matrix: THREE.Matrix4, color: THREE.Color, phase: number };
+        type TuftData = { matrix: Matrix4, color: Color, phase: number };
         const clusters: TuftData[][] = Array.from({ length: GRID_SIZE * GRID_SIZE }, () => []);
-        const dummy = new THREE.Object3D();
-        const color = new THREE.Color();
+        const dummy = new Object3D();
+        const color = new Color();
         
         const MAP_RES = layoutMap.width;
         const grassColor = ZONE_COLORS.GRASS;
@@ -352,7 +354,7 @@ export const createGrass = (
             });
         }
         
-        type ManagedCluster = { mesh: THREE.InstancedMesh, center: THREE.Vector3, boundingBox: THREE.Box3 };
+        type ManagedCluster = { mesh: InstancedMesh, center: Vector3, boundingBox: Box3 };
         const managedClusters: ManagedCluster[] = [];
 
         for (let i = 0; i < clusters.length; i++) {
@@ -361,7 +363,7 @@ export const createGrass = (
             
             clusterData.sort((a, b) => a.phase - b.phase);
 
-            const mesh = new THREE.InstancedMesh(sharedGeometry, sharedMaterial, clusterData.length);
+            const mesh = new InstancedMesh(sharedGeometry, sharedMaterial, clusterData.length);
             mesh.castShadow = false;
             mesh.receiveShadow = false;
             mesh.frustumCulled = true;
@@ -373,20 +375,20 @@ export const createGrass = (
                 mesh.setColorAt(j, data.color);
                 phases[j] = data.phase;
             }
-            mesh.geometry.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases, 1));
+            mesh.geometry.setAttribute('aPhase', new InstancedBufferAttribute(phases, 1));
             
             scene.add(mesh);
         }
         
-        update = (time: number, frustum: THREE.Frustum) => {
+        update = (time: number, frustum: Frustum) => {
             customUniforms.uTime.value = time;
             customUniforms.uCameraPosition.value.copy(camera.position);
         };
 
         cleanup = () => {
-            const meshesToRemove: THREE.InstancedMesh[] = [];
+            const meshesToRemove: InstancedMesh[] = [];
             scene.traverse((object) => {
-                if (object instanceof THREE.InstancedMesh && object.material === sharedMaterial) {
+                if (object instanceof InstancedMesh && object.material === sharedMaterial) {
                     meshesToRemove.push(object);
                 }
             });

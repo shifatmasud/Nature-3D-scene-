@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -113,7 +112,16 @@ const resolveTokens = (obj: any, breakpoint: Breakpoint): any => {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const value = obj[key];
       if (isResponsiveObject(value)) {
-        resolved[key] = value[breakpoint] ?? value.desktop ?? value.tablet ?? value.mobile;
+        let finalValue;
+        if (breakpoint === 'mobile') {
+          finalValue = value.mobile ?? value.tablet ?? value.desktop;
+        } else if (breakpoint === 'tablet') {
+          finalValue = value.tablet ?? value.desktop ?? value.mobile;
+        } else { // desktop
+          finalValue = value.desktop ?? value.tablet ?? value.mobile;
+        }
+        // Fallback to any available value if the preferred chain results in undefined
+        resolved[key] = finalValue ?? value.mobile ?? value.tablet ?? value.desktop;
       } else if (typeof value === 'object' && value !== null) {
         resolved[key] = resolveTokens(value, breakpoint);
       } else {

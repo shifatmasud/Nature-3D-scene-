@@ -2,7 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import * as THREE from 'three';
+// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
+import { Vector3, CanvasTexture, SRGBColorSpace, Scene, Camera, Frustum, CylinderGeometry, PlaneGeometry, MeshStandardMaterial, DoubleSide, Matrix4, Color, Object3D, InstancedMesh } from 'three';
 import { getGroundElevation } from './Ground.tsx';
 
 // --- HELPERS ---
@@ -16,7 +17,7 @@ const mulberry32 = (a: number) => {
   }
 };
 
-const randomInSphere = (radius: number, center: THREE.Vector3, target: THREE.Vector3) => {
+const randomInSphere = (radius: number, center: Vector3, target: Vector3) => {
     const u = Math.random();
     const v = Math.random();
     const theta = 2 * Math.PI * u;
@@ -80,16 +81,16 @@ const createDenseClusterTexture = () => {
     drawLeaf(x, y, len, Math.random() * Math.PI * 2);
   }
 
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace; 
+  const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace; 
   return tex;
 };
 
 // --- LOGIC ---
 
 export const createTrees = (
-    scene: THREE.Scene, 
-    camera: THREE.Camera, 
+    scene: Scene, 
+    camera: Camera, 
     theme: any, 
     positions: {x: number, z: number}[]
 ) => {
@@ -99,12 +100,12 @@ export const createTrees = (
     Math.random = rng;
 
     let cleanup = () => {};
-    let update = (time: number, frustum: THREE.Frustum) => {};
+    let update = (time: number, frustum: Frustum) => {};
 
     try {
         const customUniforms = { 
             uTime: { value: 0 },
-            uCameraPosition: { value: new THREE.Vector3() } 
+            uCameraPosition: { value: new Vector3() } 
         };
         const count = positions.length;
         
@@ -119,13 +120,13 @@ export const createTrees = (
         `;
 
         // GEOMETRY
-        const woodGeo = new THREE.CylinderGeometry(0.3, 1.0, 1, 3);
+        const woodGeo = new CylinderGeometry(0.3, 1.0, 1, 3);
         woodGeo.translate(0, 0.5, 0); 
 
-        const leafGeo = new THREE.PlaneGeometry(1, 1, 1, 1);
+        const leafGeo = new PlaneGeometry(1, 1, 1, 1);
 
         // MATERIALS
-        const trunkMaterial = new THREE.MeshStandardMaterial({
+        const trunkMaterial = new MeshStandardMaterial({
             color: 0x8D7B68, 
             roughness: 1.0,
             metalness: 0.0,
@@ -185,10 +186,10 @@ export const createTrees = (
         };
 
         const clusterTexture = createDenseClusterTexture();
-        const leafMaterial = new THREE.MeshStandardMaterial({
+        const leafMaterial = new MeshStandardMaterial({
             map: clusterTexture,
             alphaTest: 0.1, 
-            side: THREE.DoubleSide,
+            side: DoubleSide,
             roughness: 0.9,
             metalness: 0.0,
             flatShading: false,
@@ -263,21 +264,21 @@ export const createTrees = (
             );
         };
         
-        type LeafInstance = { matrix: THREE.Matrix4, color: THREE.Color };
+        type LeafInstance = { matrix: Matrix4, color: Color };
         
-        const allWoodMatrices: THREE.Matrix4[] = [];
+        const allWoodMatrices: Matrix4[] = [];
         const allLeafInstances: LeafInstance[] = [];
         
-        const _pos = new THREE.Vector3();
-        const _target = new THREE.Vector3();
-        const upVector = new THREE.Vector3(0, 1, 0);
-        const dummy = new THREE.Object3D();
+        const _pos = new Vector3();
+        const _target = new Vector3();
+        const upVector = new Vector3(0, 1, 0);
+        const dummy = new Object3D();
 
         for (let i = 0; i < count; i++) {
             const p = positions[i];
             const gElev = getGroundElevation(p.x, -p.z) * 0.3;
             const treeY = -1.5 + gElev - 0.2;
-            const treeBase = new THREE.Vector3(p.x, treeY, p.z);
+            const treeBase = new Vector3(p.x, treeY, p.z);
             
             const trunkHeight = 4.5 + Math.random() * 2.0;
             const trunkWidth = 0.25 + Math.random() * 0.1;
@@ -287,15 +288,15 @@ export const createTrees = (
             dummy.scale.set(trunkWidth, trunkHeight, trunkWidth);
             dummy.updateMatrix();
             const trunkMatrix = dummy.matrix.clone();
-            const trunkTop = new THREE.Vector3(0, 1, 0).applyMatrix4(trunkMatrix);
+            const trunkTop = new Vector3(0, 1, 0).applyMatrix4(trunkMatrix);
 
             const branchesPerTree = 15; 
-            const branchTips: THREE.Vector3[] = [trunkTop];
+            const branchTips: Vector3[] = [trunkTop];
             allWoodMatrices.push(trunkMatrix);
 
             for (let b = 0; b < branchesPerTree; b++) {
                 const hRatio = 0.5 + 0.45 * (b / (branchesPerTree - 1)) + (Math.random() * 0.1);
-                const attachPoint = new THREE.Vector3(0, hRatio, 0).applyMatrix4(trunkMatrix);
+                const attachPoint = new Vector3(0, hRatio, 0).applyMatrix4(trunkMatrix);
                 
                 const angle = b * 2.4 + Math.random() * 0.5; 
                 const leanUp = 0.5 + Math.random() * 0.4;
@@ -309,7 +310,7 @@ export const createTrees = (
                 dummy.scale.set(branchWidth, branchLen, branchWidth);
                 dummy.updateMatrix();
                 allWoodMatrices.push(dummy.matrix.clone());
-                branchTips.push(new THREE.Vector3(0, 1, 0).applyMatrix4(dummy.matrix));
+                branchTips.push(new Vector3(0, 1, 0).applyMatrix4(dummy.matrix));
             }
 
             const leavesPerCluster = 300; 
@@ -326,7 +327,7 @@ export const createTrees = (
                     const s = (1.8 + Math.random() * 1.0) * scaleFalloff;
                     dummy.scale.set(s, s, s);
                     dummy.updateMatrix();
-                    const color = new THREE.Color();
+                    const color = new Color();
                     const v = Math.random();
                     if (v > 0.75) color.setHex(0xB2D8B2); 
                     else if (v > 0.35) color.setHex(0x88C488); 
@@ -337,21 +338,21 @@ export const createTrees = (
             }
         }
         
-        const woodMesh = new THREE.InstancedMesh(woodGeo, trunkMaterial, allWoodMatrices.length);
+        const woodMesh = new InstancedMesh(woodGeo, trunkMaterial, allWoodMatrices.length);
         allWoodMatrices.forEach((m, i) => woodMesh.setMatrixAt(i, m));
         woodMesh.castShadow = false;
         woodMesh.receiveShadow = false;
         scene.add(woodMesh);
 
         // --- SORT FOR LOD ---
-        const tempPos = new THREE.Vector3();
+        const tempPos = new Vector3();
         allLeafInstances.sort((a, b) => {
             const distA = tempPos.setFromMatrixPosition(a.matrix).lengthSq();
             const distB = tempPos.setFromMatrixPosition(b.matrix).lengthSq();
             return distA - distB;
         });
 
-        const leafMesh = new THREE.InstancedMesh(leafGeo, leafMaterial, allLeafInstances.length);
+        const leafMesh = new InstancedMesh(leafGeo, leafMaterial, allLeafInstances.length);
         allLeafInstances.forEach((inst, i) => {
             leafMesh.setMatrixAt(i, inst.matrix);
             leafMesh.setColorAt(i, inst.color);
@@ -360,7 +361,7 @@ export const createTrees = (
         leafMesh.receiveShadow = false;
         scene.add(leafMesh);
         
-        update = (time: number, frustum: THREE.Frustum) => {
+        update = (time: number, frustum: Frustum) => {
             customUniforms.uTime.value = time;
             customUniforms.uCameraPosition.value.copy(camera.position);
 

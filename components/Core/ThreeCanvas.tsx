@@ -1,18 +1,20 @@
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useRef, useEffect } from 'react';
-import * as THREE from 'three';
+// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
+import { Scene, PerspectiveCamera, WebGLRenderer, Camera, Vector2, SRGBColorSpace, Clock } from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 interface ThreeCanvasProps {
-  onInit: (scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => (() => void) | void;
-  onUpdate?: (time: number, camera: THREE.Camera) => void;
+  onInit: (scene: Scene, camera: PerspectiveCamera, renderer: WebGLRenderer) => (() => void) | void;
+  onUpdate?: (time: number, camera: Camera) => void;
   className?: string;
   style?: React.CSSProperties;
   pixelRatio?: number;
@@ -22,7 +24,7 @@ interface ThreeCanvasProps {
 
 const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, style, pixelRatio = 1, antiAliasing = true, themeName = 'dark' }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const rendererRef = useRef<WebGLRenderer | null>(null);
   const composerRef = useRef<EffectComposer | null>(null);
   const bloomPassRef = useRef<UnrealBloomPass | null>(null);
 
@@ -33,12 +35,12 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
 
-    const scene = new THREE.Scene();
+    const scene = new Scene();
     
     // ADJUSTED FAR PLANE: 2000 is safer for depth buffer precision on mobile GPUs
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
+    const camera = new PerspectiveCamera(45, width / height, 0.1, 2000);
 
-    const renderer = new THREE.WebGLRenderer({ 
+    const renderer = new WebGLRenderer({ 
       antialias: antiAliasing, // Standard MSAA only if requested
       alpha: false,
       powerPreference: 'high-performance',
@@ -47,7 +49,7 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
     });
     renderer.setSize(width, height);
     renderer.setPixelRatio(pixelRatio); 
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.outputColorSpace = SRGBColorSpace;
     rendererRef.current = renderer;
     
     containerRef.current.appendChild(renderer.domElement);
@@ -62,7 +64,7 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
       composer.addPass(renderPass);
 
       const bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(width, height),
+        new Vector2(width, height),
         themeName === 'light' ? 0.02 : 0.35, 
         0.5,
         0.2
@@ -96,7 +98,7 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
     window.addEventListener('resize', handleResize);
 
     let animationFrameId: number;
-    const clock = new THREE.Clock();
+    const clock = new Clock();
 
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);

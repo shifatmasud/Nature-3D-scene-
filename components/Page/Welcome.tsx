@@ -29,7 +29,17 @@ const Welcome = () => {
     antiAliasing: false,
   });
 
-  const isMobile = breakpoint === 'mobile';
+  const getSettingsButtonRight = () => {
+    const baseOffset = `calc(${theme.spacing['Space.L']} + 44px`;
+    switch (breakpoint) {
+      case 'mobile':
+        return `${baseOffset} + ${theme.spacing['Space.XS']})`;
+      case 'tablet':
+      case 'desktop':
+      default:
+        return `${baseOffset} + ${theme.spacing['Space.S']})`;
+    }
+  };
 
   const styles: { [key: string]: React.CSSProperties } = {
     container: {
@@ -47,9 +57,7 @@ const Welcome = () => {
     settingsButton: {
         position: 'absolute',
         top: theme.spacing['Space.L'],
-        right: isMobile 
-          ? `calc(${theme.spacing['Space.L']} + 44px + ${theme.spacing['Space.XS']})`
-          : `calc(${theme.spacing['Space.L']} + 44px + ${theme.spacing['Space.S']})`,
+        right: getSettingsButtonRight(),
         width: '44px',
         height: '44px',
         borderRadius: theme.radius['Radius.Full'],

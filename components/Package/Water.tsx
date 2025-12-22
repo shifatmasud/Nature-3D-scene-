@@ -2,21 +2,22 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import * as THREE from 'three';
+// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
+import { Scene, CircleGeometry, Color, ShaderMaterial } from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 
-export const createWater = (scene: THREE.Scene, theme: any) => {
+export const createWater = (scene: Scene, theme: any) => {
     let update = (time: number, dayFactor: number) => {};
     let cleanup = () => {};
 
     try {
-        const waterGeometry = new THREE.CircleGeometry(20, 32);
+        const waterGeometry = new CircleGeometry(20, 32);
 
         const reflector = new Reflector(waterGeometry, {
             clipBias: 0.003,
             textureWidth: 256, // Low res for performance and stylized look
             textureHeight: 256,
-            color: 0x8899aa, // Base water color
+            color: new Color(0x8899aa), // Base water color
         });
 
         reflector.position.y = -1.6;
@@ -27,14 +28,14 @@ export const createWater = (scene: THREE.Scene, theme: any) => {
             uDayFactor: { value: 1.0 },
             uWaveFrequency: { value: 10.0 },
             uWaveAmplitude: { value: 0.005 },
-            uNightColor: { value: new THREE.Color(0x3a4a5a) },
-            uDayColor: { value: new THREE.Color(0xA9DDF3) },
-            uFoamColor: { value: new THREE.Color(0xffffff) },
+            uNightColor: { value: new Color(0x3a4a5a) },
+            uDayColor: { value: new Color(0xA9DDF3) },
+            uFoamColor: { value: new Color(0xffffff) },
             uShoreDistance: { value: 10.5 },
             uFoamSoftness: { value: 1.0 },
         };
 
-        const material = reflector.material as THREE.ShaderMaterial;
+        const material = reflector.material as ShaderMaterial;
         material.onBeforeCompile = (shader) => {
             shader.uniforms.uTime = customUniforms.uTime;
             shader.uniforms.uDayFactor = customUniforms.uDayFactor;
@@ -132,6 +133,7 @@ export const createWater = (scene: THREE.Scene, theme: any) => {
         cleanup = () => {
             scene.remove(reflector);
             waterGeometry.dispose();
+            (reflector.material as ShaderMaterial).dispose();
         };
 
     } catch (e) {

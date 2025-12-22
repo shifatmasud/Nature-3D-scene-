@@ -2,7 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import * as THREE from 'three';
+// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
+import { Scene, Frustum, Vector3, Color, IcosahedronGeometry, MeshStandardMaterial, InstancedMesh, Object3D, PerspectiveCamera } from 'three';
 import { getGroundElevation } from './Ground.tsx';
 
 // --- HELPERS ---
@@ -18,7 +19,7 @@ const mulberry32 = (a: number) => {
 // --- LOGIC ---
 
 export const createRocks = (
-    scene: THREE.Scene, 
+    scene: Scene, 
     theme: any, 
     positions: {x: number, z: number}[]
 ) => {
@@ -28,19 +29,19 @@ export const createRocks = (
     Math.random = rng;
 
     let cleanup = () => {};
-    let update = (time: number, frustum: THREE.Frustum) => {};
+    let update = (time: number, frustum: Frustum) => {};
 
     try {
         const customUniforms = { 
             uTime: { value: 0 },
-            uCameraPosition: { value: new THREE.Vector3() },
-            uMossColor: { value: new THREE.Color(0x669966) },
-            uRockColor: { value: new THREE.Color(0x9E9E9E) }
+            uCameraPosition: { value: new Vector3() },
+            uMossColor: { value: new Color(0x669966) },
+            uRockColor: { value: new Color(0x9E9E9E) }
         };
         const count = positions.length;
 
-        const geometry = new THREE.IcosahedronGeometry(1.0, 1);
-        const material = new THREE.MeshStandardMaterial({
+        const geometry = new IcosahedronGeometry(1.0, 1);
+        const material = new MeshStandardMaterial({
             color: 0x9E9E9E,
             roughness: 0.8,
             metalness: 0.1,
@@ -187,11 +188,11 @@ export const createRocks = (
             );
         };
 
-        const mesh = new THREE.InstancedMesh(geometry, material, count);
+        const mesh = new InstancedMesh(geometry, material, count);
         mesh.castShadow = false;
         mesh.receiveShadow = false;
 
-        const dummy = new THREE.Object3D();
+        const dummy = new Object3D();
         
         for (let i = 0; i < count; i++) {
             const p = positions[i];
@@ -222,9 +223,9 @@ export const createRocks = (
 
         scene.add(mesh);
 
-        update = (time: number, frustum: THREE.Frustum) => {
+        update = (time: number, frustum: Frustum) => {
             customUniforms.uTime.value = time;
-            const camera = scene.getObjectByProperty("isPerspectiveCamera", true) as THREE.PerspectiveCamera;
+            const camera = scene.getObjectByProperty("isPerspectiveCamera", true) as PerspectiveCamera;
             if (camera) {
                 customUniforms.uCameraPosition.value.copy(camera.position);
             }

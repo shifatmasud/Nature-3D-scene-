@@ -2,31 +2,32 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import * as THREE from 'three';
+// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
+import { Scene, PerspectiveCamera, SphereGeometry, MeshBasicMaterial, AdditiveBlending, Vector3, InstancedMesh, Object3D, InstancedBufferAttribute } from 'three';
 
 export const createFireflies = (
-    scene: THREE.Scene,
+    scene: Scene,
     theme: any,
     count: number,
     bounds: { width: number, height: number, depth: number },
-    camera: THREE.PerspectiveCamera
+    camera: PerspectiveCamera
 ) => {
     let update = (time: number) => {};
     let cleanup = () => {};
 
     try {
-        const geometry = new THREE.SphereGeometry(0.08, 4, 4);
+        const geometry = new SphereGeometry(0.08, 4, 4);
         
-        const material = new THREE.MeshBasicMaterial({
+        const material = new MeshBasicMaterial({
             color: 0xffffff,
             transparent: true,
-            blending: THREE.AdditiveBlending,
+            blending: AdditiveBlending,
             depthWrite: false,
         });
 
         const customUniforms = {
             uTime: { value: 0 },
-            uCameraPos: { value: new THREE.Vector3() },
+            uCameraPos: { value: new Vector3() },
         };
 
         material.onBeforeCompile = (shader) => {
@@ -116,9 +117,9 @@ export const createFireflies = (
             );
         };
 
-        const mesh = new THREE.InstancedMesh(geometry, material, count);
+        const mesh = new InstancedMesh(geometry, material, count);
 
-        const dummy = new THREE.Object3D();
+        const dummy = new Object3D();
         const phases = new Float32Array(count);
         const types = new Float32Array(count);
         const scales = new Float32Array(count);
@@ -137,9 +138,9 @@ export const createFireflies = (
             scales[i] = 0.5 + Math.random() * 1.0;
         }
 
-        mesh.geometry.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases, 1));
-        mesh.geometry.setAttribute('aType', new THREE.InstancedBufferAttribute(types, 1));
-        mesh.geometry.setAttribute('aScale', new THREE.InstancedBufferAttribute(scales, 1));
+        mesh.geometry.setAttribute('aPhase', new InstancedBufferAttribute(phases, 1));
+        mesh.geometry.setAttribute('aType', new InstancedBufferAttribute(types, 1));
+        mesh.geometry.setAttribute('aScale', new InstancedBufferAttribute(scales, 1));
         
         scene.add(mesh);
 
@@ -152,6 +153,7 @@ export const createFireflies = (
             scene.remove(mesh);
             geometry.dispose();
             material.dispose();
+            mesh.dispose();
         };
 
     } catch (e) {
