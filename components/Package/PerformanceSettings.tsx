@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -20,6 +19,15 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
   const { theme } = useTheme();
   const breakpoint = useBreakpoint();
   const isMobile = breakpoint === 'mobile';
+
+  const handleResolutionChange = (res: 'ultra' | 'performance' | 'balanced' | 'high') => {
+    if (res === 'ultra') {
+      // "Ultra" preset also disables fireflies for max performance
+      setSettings(s => ({ ...s, resolution: res, effects: false }));
+    } else {
+      setSettings(s => ({ ...s, resolution: res }));
+    }
+  };
 
   const styles: { [key: string]: React.CSSProperties } = {
     backdrop: {
@@ -134,29 +142,15 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
             <div style={styles.settingRow}>
                 <span style={styles.label}>Resolution</span>
                 <div style={styles.buttonGroup}>
-                    {(['performance', 'balanced', 'high'] as const).map(res => (
+                    {(['ultra', 'performance', 'balanced', 'high'] as const).map(res => (
                         <button 
                             key={res}
                             style={{...styles.button, ...(settings.resolution === res ? styles.activeButton : {})}}
-                            onClick={() => setSettings(s => ({...s, resolution: res}))}
+                            onClick={() => handleResolutionChange(res)}
                         >
                             {res.charAt(0).toUpperCase() + res.slice(1)}
                         </button>
                     ))}
-                </div>
-            </div>
-
-            <div style={styles.settingRow}>
-                <span style={styles.label}>Shadows</span>
-                <div style={styles.buttonGroup}>
-                     <button 
-                        style={{...styles.button, ...(!settings.shadows ? styles.activeButton : {})}}
-                        onClick={() => setSettings(s => ({...s, shadows: false}))}
-                    >Off</button>
-                    <button 
-                        style={{...styles.button, ...(settings.shadows ? styles.activeButton : {})}}
-                        onClick={() => setSettings(s => ({...s, shadows: true}))}
-                    >On</button>
                 </div>
             </div>
 

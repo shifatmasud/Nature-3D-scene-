@@ -6,6 +6,7 @@
     "@google/genai": "https://esm.sh/@google/genai@^0.7.0",
     "three": "https://esm.sh/three@0.180.0",
     "three/addons/": "https://esm.sh/three@0.180.0/examples/jsm/",
+    "three/addons/objects/Reflector.js": "https://esm.sh/three@0.180.0/examples/jsm/objects/Reflector.js",
     "gsap": "https://esm.sh/gsap@3.13.0",
     "framer-motion": "https://esm.sh/framer-motion@12.23.24?external=react,react-dom"
   }

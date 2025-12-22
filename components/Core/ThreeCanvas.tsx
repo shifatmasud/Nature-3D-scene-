@@ -12,7 +12,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 interface ThreeCanvasProps {
   onInit: (scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => (() => void) | void;
-  onUpdate?: (time: number) => void;
+  onUpdate?: (time: number, camera: THREE.Camera) => void;
   className?: string;
   style?: React.CSSProperties;
   pixelRatio?: number;
@@ -103,7 +103,7 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
       
       const time = clock.getElapsedTime();
       if (onUpdate) {
-        onUpdate(time);
+        onUpdate(time, camera);
       }
 
       if (composerRef.current) {

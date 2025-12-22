@@ -1,5 +1,3 @@
-
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -18,13 +16,12 @@ const mulberry32 = (a: number) => {
   }
 };
 
-// Volumetric helper for leaf clouds
 const randomInSphere = (radius: number, center: THREE.Vector3, target: THREE.Vector3) => {
     const u = Math.random();
     const v = Math.random();
     const theta = 2 * Math.PI * u;
     const phi = Math.acos(2 * v - 1);
-    const r = Math.cbrt(Math.random()) * radius; // cbrt for uniform density
+    const r = Math.cbrt(Math.random()) * radius;
     const sinPhi = Math.sin(phi);
     target.x = center.x + r * sinPhi * Math.cos(theta);
     target.y = center.y + r * sinPhi * Math.sin(theta);
@@ -32,7 +29,7 @@ const randomInSphere = (radius: number, center: THREE.Vector3, target: THREE.Vec
 };
 
 const createDenseClusterTexture = () => {
-  const size = 32; // OPTIMIZED: Reduced to 32px for ultra-low-res stylized look
+  const size = 32;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -58,7 +55,6 @@ const createDenseClusterTexture = () => {
   const cx = size / 2;
   const cy = size / 2;
 
-  // Layer 1: Background fan
   for(let i=0; i<24; i++) {
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * (size * 0.28);
@@ -67,8 +63,6 @@ const createDenseClusterTexture = () => {
     const len = (size * 0.09) * (0.8 + Math.random() * 0.4);
     drawLeaf(x, y, len, angle - Math.PI/2 + (Math.random()*0.5 - 0.25));
   }
-
-  // Layer 2: Main body
   for(let i=0; i<18; i++) {
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * (size * 0.18); 
@@ -77,8 +71,6 @@ const createDenseClusterTexture = () => {
     const len = (size * 0.07) * (0.8 + Math.random() * 0.4);
     drawLeaf(x, y, len, angle - Math.PI/2 + (Math.random()*1.0 - 0.5));
   }
-
-  // Layer 3: Detail highlights
   for(let i=0; i<12; i++) {
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * (size * 0.06);
@@ -107,18 +99,28 @@ export const createTrees = (
     Math.random = rng;
 
     let cleanup = () => {};
-    let update = (time: number) => {};
+    let update = (time: number, frustum: THREE.Frustum) => {};
 
     try {
-        const customUniforms = { uTime: { value: 0 } };
+        const customUniforms = { 
+            uTime: { value: 0 },
+            uCameraPosition: { value: new THREE.Vector3() } 
+        };
         const count = positions.length;
+        
+         const ditherFunctions = `
+            float bayer(vec2 v) {
+                return ( ( 5.0 * v.x + 3.0 * v.y ) + ( 7.0 * v.x + 2.0 * v.y ) * ( 5.0 * v.x + 3.0 * v.y ) ) * 0.25;
+            }
+            float bayer(vec2 v, float rep) {
+                v *= rep;
+                return fract( bayer( floor(v) ) + bayer( fract(v) ) );
+            }
+        `;
 
         // GEOMETRY
-        // Reusable Unit Cylinder for both trunks and branches
-        // OPTIMIZED: Reduced radial segments to 3 for ultra low-poly (triangular prism) look
-        // TAPERED: Radius top 0.3, bottom 1.0 for stronger taper on all branches
         const woodGeo = new THREE.CylinderGeometry(0.3, 1.0, 1, 3);
-        woodGeo.translate(0, 0.5, 0); // Pivot at base
+        woodGeo.translate(0, 0.5, 0); 
 
         const leafGeo = new THREE.PlaneGeometry(1, 1, 1, 1);
 
@@ -128,21 +130,56 @@ export const createTrees = (
             roughness: 1.0,
             metalness: 0.0,
             flatShading: true,
+            transparent: false,
         });
 
         trunkMaterial.onBeforeCompile = (shader) => {
             shader.uniforms.uTime = customUniforms.uTime;
+            shader.uniforms.uCameraPosition = customUniforms.uCameraPosition;
             shader.vertexShader = shader.vertexShader.replace(
                 '#include <common>',
-                `#include <common>\nuniform float uTime;`
+                `
+                #include <common>
+                uniform float uTime;
+                uniform vec3 uCameraPosition;
+                varying float vDistToCam;
+                `
             );
             shader.vertexShader = shader.vertexShader.replace(
                 '#include <begin_vertex>',
                 `
                 #include <begin_vertex>
+                
+                vec4 instanceWorldPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+                vDistToCam = length(instanceWorldPos.xyz - uCameraPosition);
+
+                float anim_lod_start = 3.0;
+                float anim_lod_end = 6.0;
+                float anim_lod_factor = 1.0 - smoothstep(anim_lod_start, anim_lod_end, vDistToCam);
+
                 float windSway = sin(uTime * 0.5 + instanceMatrix[3].x * 0.3) * 0.05;
+                windSway *= anim_lod_factor;
                 float bend = windSway * (position.y * position.y * 0.04); 
                 transformed.x += bend;
+                `
+            );
+             shader.fragmentShader = `
+                varying float vDistToCam;
+                ${ditherFunctions}
+            ` + shader.fragmentShader;
+
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <color_fragment>',
+                `
+                #include <color_fragment>
+                float fade_start = 22.0;
+                float fade_end = 28.0;
+                float fade_alpha = 1.0 - smoothstep(fade_start, fade_end, vDistToCam);
+                
+                float dither_val = bayer(gl_FragCoord.xy, 4.0);
+                if (dither_val > fade_alpha) {
+                    discard;
+                }
                 `
             );
         };
@@ -150,163 +187,185 @@ export const createTrees = (
         const clusterTexture = createDenseClusterTexture();
         const leafMaterial = new THREE.MeshStandardMaterial({
             map: clusterTexture,
-            alphaTest: 0.45, 
+            alphaTest: 0.1, 
             side: THREE.DoubleSide,
             roughness: 0.9,
             metalness: 0.0,
             flatShading: false,
+            transparent: false,
         });
 
         leafMaterial.onBeforeCompile = (shader) => {
             shader.uniforms.uTime = customUniforms.uTime;
+            shader.uniforms.uCameraPosition = customUniforms.uCameraPosition;
+
             shader.vertexShader = shader.vertexShader.replace(
                 '#include <common>',
-                `#include <common>\nuniform float uTime; float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }`
+                `
+                #include <common>
+                uniform float uTime;
+                uniform vec3 uCameraPosition;
+                varying float vDistToCam;
+                float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+                `
             );
             shader.vertexShader = shader.vertexShader.replace(
                 '#include <begin_vertex>',
                 `
                 #include <begin_vertex>
+
+                vec4 instanceWorldPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+                vDistToCam = length(instanceWorldPos.xyz - uCameraPosition);
+
                 float id = hash(vec2(instanceMatrix[3].x, instanceMatrix[3].z));
                 float dist = length(uv - 0.5);
-                transformed.z -= dist * dist * 1.5 * step(0.9, abs(normal.z)); // Puffiness
+                transformed.z -= dist * dist * 1.5 * step(0.9, abs(normal.z));
                 
+                float anim_lod_start = 3.0;
+                float anim_lod_end = 6.0;
+                float anim_lod_factor = 1.0 - smoothstep(anim_lod_start, anim_lod_end, vDistToCam);
+
                 float windPhase = uTime * 0.8 + instanceMatrix[3].x * 0.5;
-                float windOffset = (sin(windPhase) + sin(windPhase * 2.5 + id * 5.0) * 0.15) * uv.y * 0.05;
+                float windSway = sin(windPhase);
+                float windFlutter = sin(windPhase * 2.5 + id * 5.0) * 0.15;
+                float windOffset = (windSway + windFlutter) * uv.y * 0.05 * anim_lod_factor;
                 
                 transformed.x += windOffset; 
                 transformed.z += windOffset * 0.3; 
-                transformed.y += sin(windPhase * 1.5) * uv.y * 0.02; 
+                transformed.y += sin(windPhase * 1.5) * uv.y * 0.02 * anim_lod_factor; 
                 `
             );
+            
+            shader.fragmentShader = `
+                varying float vDistToCam;
+                ${ditherFunctions}
+            ` + shader.fragmentShader;
+            
             shader.fragmentShader = shader.fragmentShader.replace(
                 '#include <color_fragment>',
                 `#include <color_fragment>\nfloat planeGradient = mix(0.6, 1.1, vMapUv.y); diffuseColor.rgb *= planeGradient;`
             );
+            
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <alphatest_fragment>',
+                `
+                float fade_start = 22.0;
+                float fade_end = 28.0;
+                float fade_alpha = 1.0 - smoothstep(fade_start, fade_end, vDistToCam);
+
+                if (texture2D(map, vMapUv).a < 0.5) discard;
+                
+                float dither_val = bayer(gl_FragCoord.xy, 4.0);
+                if (dither_val > fade_alpha) {
+                    discard;
+                }
+                `
+            );
         };
-
-        // SETUP INSTANCING
-        const branchesPerTree = 15; 
-        const woodInstances = count * (1 + branchesPerTree); // 1 Trunk + N Branches
-        const woodMesh = new THREE.InstancedMesh(woodGeo, trunkMaterial, woodInstances);
-        woodMesh.castShadow = true;
-        woodMesh.receiveShadow = true;
-
-        const leavesPerCluster = 300; 
-        // 1 Main Cluster (Top) + N Branch Clusters
-        const totalLeaves = count * (1 + branchesPerTree) * leavesPerCluster;
-        const leafMesh = new THREE.InstancedMesh(leafGeo, leafMaterial, totalLeaves);
-        leafMesh.castShadow = true;
-        leafMesh.receiveShadow = false;
-
-        const dummy = new THREE.Object3D();
+        
+        type LeafInstance = { matrix: THREE.Matrix4, color: THREE.Color };
+        
+        const allWoodMatrices: THREE.Matrix4[] = [];
+        const allLeafInstances: LeafInstance[] = [];
+        
         const _pos = new THREE.Vector3();
         const _target = new THREE.Vector3();
         const upVector = new THREE.Vector3(0, 1, 0);
-        const tempColor = new THREE.Color();
-
-        let woodIdx = 0;
-        let leafIdx = 0;
+        const dummy = new THREE.Object3D();
 
         for (let i = 0; i < count; i++) {
             const p = positions[i];
-            const gElev = getGroundElevation(p.x, p.z) * 0.3;
-            // Sink slightly to hide base
+            const gElev = getGroundElevation(p.x, -p.z) * 0.3;
             const treeY = -1.5 + gElev - 0.2;
             const treeBase = new THREE.Vector3(p.x, treeY, p.z);
             
-            // --- 1. TRUNK ---
             const trunkHeight = 4.5 + Math.random() * 2.0;
             const trunkWidth = 0.25 + Math.random() * 0.1;
-            
+
             dummy.position.copy(treeBase);
             dummy.rotation.set((Math.random()-0.5)*0.1, Math.random()*Math.PI, (Math.random()-0.5)*0.1);
             dummy.scale.set(trunkWidth, trunkHeight, trunkWidth);
             dummy.updateMatrix();
-            woodMesh.setMatrixAt(woodIdx++, dummy.matrix);
-
-            // Store trunk transform for attaching branches
             const trunkMatrix = dummy.matrix.clone();
             const trunkTop = new THREE.Vector3(0, 1, 0).applyMatrix4(trunkMatrix);
 
-            // --- 2. BRANCHES ---
-            const branchTips: THREE.Vector3[] = [];
-            // Add trunk top as a tip for leaves
-            branchTips.push(trunkTop);
+            const branchesPerTree = 15; 
+            const branchTips: THREE.Vector3[] = [trunkTop];
+            allWoodMatrices.push(trunkMatrix);
 
             for (let b = 0; b < branchesPerTree; b++) {
-                // Distribute branches along top 50% of trunk (higher canopy)
                 const hRatio = 0.5 + 0.45 * (b / (branchesPerTree - 1)) + (Math.random() * 0.1);
                 const attachPoint = new THREE.Vector3(0, hRatio, 0).applyMatrix4(trunkMatrix);
                 
-                // Spiral distribution
-                const angle = b * 2.4 + Math.random() * 0.5; // Golden angle-ish
-                const leanUp = 0.5 + Math.random() * 0.4; // 0=flat, 1.5=straight up
-
-                // Branch geometry params
-                const branchLen = (trunkHeight * 0.35) * (1.0 - hRatio * 0.5); // Lower branches longer
+                const angle = b * 2.4 + Math.random() * 0.5; 
+                const leanUp = 0.5 + Math.random() * 0.4;
+                const branchLen = (trunkHeight * 0.35) * (1.0 - hRatio * 0.5);
                 const branchWidth = trunkWidth * 0.6 * (1.0 - hRatio * 0.4);
 
                 dummy.position.copy(attachPoint);
-                // Rotate to face outward + up
-                dummy.rotation.set(0, angle, 0); // Y rotation
-                dummy.rotateX(leanUp); // Tilt up
-                dummy.rotateZ((Math.random()-0.5)*0.2); // Random wobble
-                
+                dummy.rotation.set(0, angle, 0); 
+                dummy.rotateX(leanUp); 
+                dummy.rotateZ((Math.random()-0.5)*0.2); 
                 dummy.scale.set(branchWidth, branchLen, branchWidth);
                 dummy.updateMatrix();
-                woodMesh.setMatrixAt(woodIdx++, dummy.matrix);
-
-                // Calculate tip position for leaves
-                const tip = new THREE.Vector3(0, 1, 0).applyMatrix4(dummy.matrix);
-                branchTips.push(tip);
+                allWoodMatrices.push(dummy.matrix.clone());
+                branchTips.push(new THREE.Vector3(0, 1, 0).applyMatrix4(dummy.matrix));
             }
 
-            // --- 3. LEAVES (Clouds at tips) ---
+            const leavesPerCluster = 300; 
             for (const tip of branchTips) {
-                // Randomize cluster size (Larger for more leaves)
                 const clusterRadius = 1.4 + Math.random() * 0.8;
-
                 for (let l = 0; l < leavesPerCluster; l++) {
-                    // Volumetric placement
                     randomInSphere(clusterRadius, tip, _target);
-                    
                     dummy.position.copy(_target);
-                    
-                    // Face normal outwards from cluster center for fluffiness
-                    _pos.subVectors(_target, tip).normalize();
-                    _pos.lerp(upVector, 0.6).normalize(); // Blend with up vector
-                    
+                    _pos.subVectors(_target, tip).normalize().lerp(upVector, 0.6).normalize(); 
                     dummy.lookAt(_target.clone().add(_pos));
                     dummy.rotateZ(Math.random() * Math.PI * 2);
-
-                    // Scale leaves: larger in center of cluster, smaller at edges
                     const dist = _target.distanceTo(tip);
                     const scaleFalloff = 1.0 - (dist / clusterRadius) * 0.5;
                     const s = (1.8 + Math.random() * 1.0) * scaleFalloff;
-                    
                     dummy.scale.set(s, s, s);
                     dummy.updateMatrix();
-                    leafMesh.setMatrixAt(leafIdx, dummy.matrix);
-
-                    // Synced Palette
+                    const color = new THREE.Color();
                     const v = Math.random();
-                    if (v > 0.75) tempColor.setHex(0xB2D8B2); 
-                    else if (v > 0.35) tempColor.setHex(0x88C488); 
-                    else tempColor.setHex(0x66A566);
-                    
-                    // Variation
-                    tempColor.offsetHSL(0, 0, (Math.random() - 0.5) * 0.08);
-                    leafMesh.setColorAt(leafIdx++, tempColor);
+                    if (v > 0.75) color.setHex(0xB2D8B2); 
+                    else if (v > 0.35) color.setHex(0x88C488); 
+                    else color.setHex(0x66A566);
+                    color.offsetHSL(0, 0, (Math.random() - 0.5) * 0.08);
+                    allLeafInstances.push({ matrix: dummy.matrix.clone(), color });
                 }
             }
         }
-
+        
+        const woodMesh = new THREE.InstancedMesh(woodGeo, trunkMaterial, allWoodMatrices.length);
+        allWoodMatrices.forEach((m, i) => woodMesh.setMatrixAt(i, m));
+        woodMesh.castShadow = false;
+        woodMesh.receiveShadow = false;
         scene.add(woodMesh);
-        scene.add(leafMesh);
 
-        update = (time: number) => {
+        // --- SORT FOR LOD ---
+        const tempPos = new THREE.Vector3();
+        allLeafInstances.sort((a, b) => {
+            const distA = tempPos.setFromMatrixPosition(a.matrix).lengthSq();
+            const distB = tempPos.setFromMatrixPosition(b.matrix).lengthSq();
+            return distA - distB;
+        });
+
+        const leafMesh = new THREE.InstancedMesh(leafGeo, leafMaterial, allLeafInstances.length);
+        allLeafInstances.forEach((inst, i) => {
+            leafMesh.setMatrixAt(i, inst.matrix);
+            leafMesh.setColorAt(i, inst.color);
+        });
+        leafMesh.castShadow = false;
+        leafMesh.receiveShadow = false;
+        scene.add(leafMesh);
+        
+        update = (time: number, frustum: THREE.Frustum) => {
             customUniforms.uTime.value = time;
+            customUniforms.uCameraPosition.value.copy(camera.position);
+
+            // Geometry LOD (reducing instance count) has been removed.
+            // LOD is now handled exclusively by animation fading in the vertex shader.
         };
 
         cleanup = () => {
@@ -317,8 +376,11 @@ export const createTrees = (
             trunkMaterial.dispose();
             leafMaterial.dispose();
             clusterTexture.dispose();
+            woodMesh.dispose();
+            leafMesh.dispose();
         };
-
+    } catch (e) {
+        console.error("Tree generation failed", e);
     } finally {
         Math.random = originalRandom;
     }

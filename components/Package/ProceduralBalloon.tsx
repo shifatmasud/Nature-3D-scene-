@@ -5,7 +5,22 @@
  */
 import * as THREE from 'three';
 
-export const createBalloons = (scene: THREE.Scene, theme: any, count: number) => {
+// --- HELPERS ---
+const mulberry32 = (a: number) => {
+  return function() {
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+};
+
+export const createBalloons = (scene: THREE.Scene, camera: THREE.Camera, theme: any, count: number) => {
+    const originalRandom = Math.random;
+    const seed = 78910;
+    const rng = mulberry32(seed);
+    Math.random = rng;
+
     let update = (time: number, dayFactor: number) => {};
     let cleanup = () => {};
 
@@ -91,6 +106,11 @@ export const createBalloons = (scene: THREE.Scene, theme: any, count: number) =>
             const nightFactor = 1.0 - dayFactor;
             
             balloons.forEach((b) => {
+                const dist = b.mesh.position.distanceTo(camera.position);
+                const anim_lod_start = 20.0;
+                const anim_lod_end = 40.0;
+                const anim_lod_factor = 1.0 - THREE.MathUtils.smoothstep(anim_lod_start, anim_lod_end, dist);
+
                 const angle = time * b.speed + b.phase;
                 b.mesh.position.x = b.pivot.x + Math.cos(angle) * b.radius;
                 b.mesh.position.z = b.pivot.z + Math.sin(angle) * b.radius;
@@ -98,7 +118,7 @@ export const createBalloons = (scene: THREE.Scene, theme: any, count: number) =>
                 
                 // Subtle rotation towards direction of travel
                 b.mesh.rotation.y = angle + Math.PI / 2;
-                b.mesh.rotation.z = Math.sin(time * 0.8 + b.phase) * 0.08;
+                b.mesh.rotation.z = Math.sin(time * 0.8 + b.phase) * 0.08 * anim_lod_factor;
 
                 // Toggle fog based on dayFactor: 
                 // We want balloons to ignore fog in the day for that "clean" look.
@@ -131,6 +151,8 @@ export const createBalloons = (scene: THREE.Scene, theme: any, count: number) =>
 
     } catch (e) {
         console.error("Balloon generation failed", e);
+    } finally {
+        Math.random = originalRandom;
     }
 
     return { update, cleanup };

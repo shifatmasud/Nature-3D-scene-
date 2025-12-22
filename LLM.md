@@ -14,7 +14,9 @@ Hello! You are an AI assistant helping to build this React application. Here are
 -   `components/Core/ThemeToggleButton.tsx`
 -   `components/Core/ThreeCanvas.tsx`
 -   `components/Package/Ground.tsx`
+-   `components/Package/LayoutMap.tsx`
 -   `components/Package/PerformanceSettings.tsx`
+-   `components/Package/ProceduralBalloon.tsx`
 -   `components/Package/ProceduralBush.tsx`
 -   `components/Package/ProceduralFirefly.tsx`
 -   `components/Package/ProceduralFlower.tsx`
@@ -24,6 +26,7 @@ Hello! You are an AI assistant helping to build this React application. Here are
 -   `components/Package/ProceduralTree.tsx`
 -   `components/Package/Scene.tsx`
 -   `components/Package/Sky.tsx`
+-   `components/Package/Water.tsx`
 -   `components/Page/Welcome.tsx`
 -   `README.md`
 -   `LLM.md`

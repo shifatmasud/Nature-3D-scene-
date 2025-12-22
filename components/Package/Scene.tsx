@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -18,6 +17,8 @@ import { createFlowers } from './ProceduralFlower.tsx';
 import { createSky } from './Sky.tsx';
 import { createFireflies } from './ProceduralFirefly.tsx';
 import { createBalloons } from './ProceduralBalloon.tsx';
+import { createWater } from './Water.tsx';
+import { createLayoutMap, ZONE_COLORS } from './LayoutMap.tsx';
 import type { PerformanceSettings } from '../Page/Welcome.tsx';
 import { useBreakpoint } from '../../hooks/useBreakpoint.tsx';
 
@@ -29,7 +30,6 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
   const { theme, themeName } = useTheme();
   const breakpoint = useBreakpoint();
   
-  // Ref for the current day factor to allow smooth interpolation across frames
   const dayFactorRef = useRef(themeName === 'light' ? 1.0 : 0.0);
   const themeTargetRef = useRef(themeName);
   
@@ -37,16 +37,15 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     themeTargetRef.current = themeName;
   }, [themeName]);
 
-  const updatablesRef = useRef<Array<(time: number, dayFactor: number) => void>>([]);
+  const updatablesRef = useRef<Array<(time: number, dayFactor: number, frustum: THREE.Frustum) => void>>([]);
   const controlsRef = useRef<OrbitControls | null>(null);
   const firefliesRef = useRef<{ update: (time: number) => void; cleanup: () => void; } | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
+  const frustumRef = useRef(new THREE.Frustum());
+  const projScreenMatrixRef = useRef(new THREE.Matrix4());
 
   const isMobile = breakpoint === 'mobile';
 
-  // initScene should only depend on things that fundamentally change the scene structure
-  // like performance settings or mobile vs desktop layout. 
-  // themeName is NOT in the deps to prevent full re-init (and camera reset)
   const initScene = useCallback((scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => {
     sceneRef.current = scene;
 
@@ -59,22 +58,11 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     scene.add(hemiLight);
 
     const sunLight = new THREE.DirectionalLight(0xFFFFFF, 2.5);
-    sunLight.castShadow = performanceSettings.shadows;
-    sunLight.shadow.mapSize.width = isMobile ? 256 : 512;
-    sunLight.shadow.mapSize.height = isMobile ? 256 : 512;
-    sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 100;
-    sunLight.shadow.camera.left = -30;
-    sunLight.shadow.camera.right = 30;
-    sunLight.shadow.camera.top = 30;
-    sunLight.shadow.camera.bottom = -30;
-    sunLight.shadow.bias = -0.001;
+    sunLight.castShadow = false;
     scene.add(sunLight);
 
     const moonLight = new THREE.DirectionalLight(0xCCDDFF, 0.0);
-    moonLight.castShadow = performanceSettings.shadows;
-    moonLight.shadow.mapSize.width = isMobile ? 256 : 512;
-    moonLight.shadow.mapSize.height = isMobile ? 256 : 512;
+    moonLight.castShadow = false;
     scene.add(moonLight);
     
     scene.userData.sunLight = sunLight;
@@ -83,7 +71,6 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     // --- CELESTIAL BODIES ---
     const sunMesh = new THREE.Mesh(
       new THREE.SphereGeometry(6, 16, 16),
-      // Sun Mesh ignoring fog to stay clear during day
       new THREE.MeshBasicMaterial({ color: 0xFFDD44, fog: false }) 
     );
     scene.add(sunMesh);
@@ -92,8 +79,10 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
       new THREE.SphereGeometry(4, 16, 16),
       new THREE.MeshStandardMaterial({ 
         color: 0xDDDDFF, 
-        emissive: 0x333377,
-        roughness: 0.8 
+        emissive: 0xEEEEFF,
+        emissiveIntensity: 0.6,
+        roughness: 0.8,
+        fog: false
       })
     );
     scene.add(moonMesh);
@@ -103,38 +92,109 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     controls.enableDamping = true;
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.3; 
-    controls.minDistance = isMobile ? 8 : 5;
-    controls.maxDistance = isMobile ? 60 : 45; 
     controlsRef.current = controls;
 
-    // --- SCENE LAYOUT ---
-    const spread = 22; 
-    const rockPositions = [{x: -5, z: 4}, {x: 6, z: -3}, {x: 2, z: 8}];
-    const treePositions = [{x: -8, z: -8}, {x: 8, z: 2}, {x: 0, z: -10}];
-    const pinePositions = [{x: 10, z: -8}, {x: -9, z: 5}, {x: 2, z: -6}];
-    const bushPositions = [{x: 4, z: 4}, {x: -4, z: -2}, {x: 1, z: 5}, {x: -7, z: 0}];
-    const flowerPositions = Array.from({length: isMobile ? 40 : 100}, () => ({
-        x: (Math.random() - 0.5) * spread,
-        z: (Math.random() - 0.5) * spread
-    }));
+    // --- SCENE LAYOUT & OBJECT PLACEMENT ---
+    const MAP_RES = 128;
+    const SPREAD = 20.0;
+    const layoutMap = createLayoutMap(MAP_RES, MAP_RES);
 
+    const getLayoutZone = (x: number, z: number) => {
+        const u = (x / SPREAD + 0.5);
+        const v = (z / SPREAD + 0.5);
+        if (u < 0 || u > 1 || v < 0 || v > 1) return null;
+
+        const mapX = Math.floor(u * MAP_RES);
+        const mapY = Math.floor(v * MAP_RES);
+        const idx = (mapY * MAP_RES + mapX) * 4;
+        
+        const r = layoutMap.data[idx];
+        const g = layoutMap.data[idx+1];
+        const b = layoutMap.data[idx+2];
+
+        for (const zone in ZONE_COLORS) {
+            const color = ZONE_COLORS[zone as keyof typeof ZONE_COLORS];
+            if (r === color[0] && g === color[1] && b === color[2]) {
+                return zone;
+            }
+        }
+        return null; // Return null for blended/unknown colors
+    };
+    
+    const placeObjects = (
+        count: number,
+        targetZone: keyof typeof ZONE_COLORS,
+        maxAttemptsPerObject = 1000,
+        minDistance = 0
+    ) => {
+        const positions: { x: number; z: number }[] = [];
+        let attempts = 0;
+        const maxTotalAttempts = count * maxAttemptsPerObject;
+
+        while (positions.length < count && attempts < maxTotalAttempts) {
+            const x = (Math.random() - 0.5) * SPREAD;
+            const z = (Math.random() - 0.5) * SPREAD;
+            const zone = getLayoutZone(x, z);
+
+            if (zone === targetZone) {
+                let validPosition = true;
+                if (minDistance > 0) {
+                    for (const pos of positions) {
+                        const dx = x - pos.x;
+                        const dz = z - pos.z;
+                        const distSq = dx * dx + dz * dz;
+                        if (distSq < minDistance * minDistance) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (validPosition) {
+                    positions.push({ x, z });
+                }
+            }
+            attempts++;
+        }
+        if (positions.length < count) {
+            console.warn(`Could only place ${positions.length}/${count} objects in zone ${targetZone}`);
+        }
+        return positions;
+    };
+    
+    const treeAndPinePositions = placeObjects(6, 'TREE', 1000, 5.0);
+    const treePositions = treeAndPinePositions.slice(0, 3);
+    const pinePositions = treeAndPinePositions.slice(3);
+    const bushPositions = placeObjects(5, 'BUSH');
+    const flowerPositions = placeObjects(5, 'FLOWER');
+    const rockPositions = placeObjects(2, 'EMPTY');
+    
     // --- OBJECT CREATION ---
     const sky = createSky(scene, theme);
-    const ground = createGround(scene, theme);
+    const shadowCasters = {
+        rocks: rockPositions,
+        trees: treeAndPinePositions,
+        bushes: bushPositions
+    };
+    const ground = createGround(scene, theme, shadowCasters);
+    const water = createWater(scene, theme);
     const rocks = createRocks(scene, theme, rockPositions);
     const trees = createTrees(scene, camera, theme, treePositions);
     const pines = createPineTrees(scene, camera, theme, pinePositions);
     const bushes = createBushes(scene, camera, theme, bushPositions);
-    const flowers = createFlowers(scene, theme, flowerPositions);
-    const balloons = createBalloons(scene, theme, isMobile ? 2 : 4);
+    const flowers = createFlowers(scene, camera, theme, flowerPositions);
+    const balloons = createBalloons(scene, camera, theme, isMobile ? 2 : 4);
 
     const obstacles = [
-        ...rockPositions.map(p => ({...p, r: 2.3})),
-        ...bushPositions.map(p => ({...p, r: 1.4}))
+        ...rockPositions.map(p => ({...p, r: 2.5})),
+        ...bushPositions.map(p => ({...p, r: 1.5})),
+        ...treePositions.map(p => ({...p, r: 1.2})),
+        ...pinePositions.map(p => ({...p, r: 1.2}))
     ];
-    const grass = createGrass(scene, camera, theme, isMobile ? 15 : 30, obstacles);
+    const grass = createGrass(scene, camera, theme, isMobile ? 10000 : 20000, obstacles, layoutMap);
 
     if (performanceSettings.effects) {
+       const spread = 22;
        firefliesRef.current = createFireflies(scene, theme, isMobile ? 25 : 50, { width: spread, height: 4, depth: spread }, camera);
     }
 
@@ -146,7 +206,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     const dayHemiSky = new THREE.Color(0xA9DDF3); 
     const nightHemiSky = new THREE.Color(0x7b9cbe); 
 
-    const envUpdate = (time: number) => {
+    const envUpdate = (time: number, dayFactor: number, frustum: THREE.Frustum) => {
         const targetFactor = themeTargetRef.current === 'light' ? 1.0 : 0.0;
         const lerpSpeed = 0.02;
         dayFactorRef.current += (targetFactor - dayFactorRef.current) * lerpSpeed;
@@ -172,34 +232,41 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
         hemiLight.groundColor.lerpColors(nightHemiGround, dayHemiGround, currentDayFactor);
         hemiLight.intensity = THREE.MathUtils.lerp(1.0, 1.2, currentDayFactor);
 
-        const dayFog = new THREE.Color(0x87CEEB);
-        const nightFog = new THREE.Color(0x7a8a9a); 
+        const dayFog = new THREE.Color(0xA9DDF3);
+        const nightFog = new THREE.Color(0x3a4a5a); 
         const currentFogColor = new THREE.Color().lerpColors(nightFog, dayFog, currentDayFactor);
         
+        const fogNear = 8;
+        const fogFar = 22;
+
         if (scene.fog) {
-            (scene.fog as THREE.Fog).color.copy(currentFogColor);
+            const fog = scene.fog as THREE.Fog;
+            fog.color.copy(currentFogColor);
+            fog.near = fogNear;
+            fog.far = fogFar;
         } else {
-            scene.fog = new THREE.Fog(currentFogColor, isMobile ? 10 : 15, isMobile ? 60 : 80);
+            scene.fog = new THREE.Fog(currentFogColor, fogNear, fogFar);
         }
         
         scene.background = currentFogColor;
 
         sky.update(time, sunPos);
+        water.update(time, currentDayFactor);
         if (firefliesRef.current) firefliesRef.current.update(time);
-        bushes.update(time);
-        trees.update(time);
-        pines.update(time);
-        rocks.update(time);
+        bushes.update(time, frustum);
+        trees.update(time, frustum);
+        pines.update(time, frustum);
+        rocks.update(time, frustum);
         ground.update(time);
-        grass.update(time);
-        flowers.update(time);
+        grass.update(time, frustum);
+        flowers.update(time, frustum);
         balloons.update(time, currentDayFactor);
     };
 
     updatablesRef.current = [envUpdate];
 
     return () => {
-      sky.cleanup(); bushes.cleanup(); trees.cleanup(); pines.cleanup();
+      sky.cleanup(); water.cleanup(); bushes.cleanup(); trees.cleanup(); pines.cleanup();
       rocks.cleanup(); ground.cleanup(); grass.cleanup(); flowers.cleanup();
       balloons.cleanup();
       if (firefliesRef.current) firefliesRef.current.cleanup();
@@ -220,11 +287,15 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     }
   }, [performanceSettings.resolution]);
 
-  const onUpdate = useCallback((time: number) => {
+  const onUpdate = useCallback((time: number, camera: THREE.Camera) => {
     if (controlsRef.current) {
         controlsRef.current.update();
     }
-    updatablesRef.current.forEach(fn => fn(time, dayFactorRef.current));
+    
+    projScreenMatrixRef.current.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustumRef.current.setFromProjectionMatrix(projScreenMatrixRef.current);
+    
+    updatablesRef.current.forEach(fn => fn(time, dayFactorRef.current, frustumRef.current));
   }, []);
 
   return (

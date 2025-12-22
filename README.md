@@ -18,7 +18,9 @@ Imagine you're building with LEGOs. This project gives you a super organized box
         -   `ThemeToggleButton.tsx`: A button to switch between light and dark themes.
         -   `ThreeCanvas.tsx`: The stage for our 3D world.
     -   **`Package/`**: More complex pieces made from Core components.
-        -   `Scene.tsx`: The entire 3D world, with trees, ground, sky, and lights.
+        -   `LayoutMap.tsx`: A special "drawing" that tells the scene where to place trees, grass, flowers, and paths, making the world look more designed.
+        -   `Scene.tsx`: The entire 3D world, with trees, ground, sky, and lights. It reads the `LayoutMap` to arrange everything.
+        -   `Water.tsx`: Creates the beautiful, reflective lake surrounding the island.
         -   `PerformanceSettings.tsx`: A pop-up menu to change graphics settings to make the app run faster.
         -   ... and all the procedural files for creating objects (`ProceduralBush.tsx`, `ProceduralTree.tsx`, etc.)
     -   **`Page/`**: Full pages made by combining smaller components.
@@ -38,7 +40,9 @@ Imagine you're building with LEGOs. This project gives you a super organized box
 │   │   └── ThreeCanvas.tsx
 │   ├── Package/
 │   │   ├── Ground.tsx
+│   │   ├── LayoutMap.tsx
 │   │   ├── PerformanceSettings.tsx
+│   │   ├── ProceduralBalloon.tsx
 │   │   ├── ProceduralBush.tsx
 │   │   ├── ProceduralFirefly.tsx
 │   │   ├── ProceduralFlower.tsx
@@ -47,7 +51,8 @@ Imagine you're building with LEGOs. This project gives you a super organized box
 │   │   ├── ProceduralRock.tsx
 │   │   ├── ProceduralTree.tsx
 │   │   ├── Scene.tsx
-│   │   └── Sky.tsx
+│   │   ├── Sky.tsx
+│   │   └── Water.tsx
 │   └── Page/
 │       └── Welcome.tsx
 ├── hooks/

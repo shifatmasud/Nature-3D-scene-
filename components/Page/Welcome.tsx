@@ -1,8 +1,8 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
+// FIX: Corrected import statement for React and useState.
 import React, { useState } from 'react';
 import { useTheme } from '../../Theme.tsx';
 import ThemeToggleButton from '../Core/ThemeToggleButton.tsx';
@@ -23,9 +23,9 @@ const Welcome = () => {
   const breakpoint = useBreakpoint();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [performanceSettings, setPerformanceSettings] = useState<PerformanceSettings>({
-    resolution: 'balanced',
-    shadows: true,
-    effects: true,
+    resolution: 'ultra',
+    shadows: false,
+    effects: false,
     antiAliasing: false,
   });
 

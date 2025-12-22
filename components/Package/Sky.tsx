@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -79,9 +78,21 @@ void main() {
     vec3 skyColor = mix(skyBottom, skyTop, horizon);
     
     // --- STARS (Night only) ---
-    float starThreshold = 0.985;
-    float stars = noise(viewDirection * 200.0);
-    float starVisible = smoothstep(starThreshold, 1.0, stars) * (1.0 - dayFactor);
+    // Layer 1: Larger, brighter stars
+    float stars1 = noise(viewDirection * 150.0);
+    stars1 = smoothstep(0.985, 1.0, stars1);
+
+    // Layer 2: Smaller, denser, fainter stars
+    float stars2 = noise(viewDirection * 450.0);
+    stars2 = smoothstep(0.97, 1.0, stars2) * 0.5; // Fainter
+
+    // Twinkle effect based on time
+    float twinkleNoise = noise(vec3(viewDirection.xy * 80.0, uTime * 0.1));
+    float twinkle = mix(0.5, 1.0, twinkleNoise);
+    
+    float totalStars = (stars1 + stars2) * twinkle;
+    
+    float starVisible = totalStars * (1.0 - dayFactor);
     skyColor += vec3(starVisible);
 
     // --- CLOUDS ---
