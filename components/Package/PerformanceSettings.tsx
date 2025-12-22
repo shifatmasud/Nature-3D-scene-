@@ -1,5 +1,4 @@
 
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -8,6 +7,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../../Theme.tsx';
 import type { PerformanceSettings } from '../Page/Welcome.tsx';
+import { useBreakpoint } from '../../hooks/useBreakpoint.tsx';
 
 interface PerformanceSettingsPanelProps {
   isOpen: boolean;
@@ -18,6 +18,8 @@ interface PerformanceSettingsPanelProps {
 
 const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isOpen, onClose, settings, setSettings }) => {
   const { theme } = useTheme();
+  const breakpoint = useBreakpoint();
+  const isMobile = breakpoint === 'mobile';
 
   const styles: { [key: string]: React.CSSProperties } = {
     backdrop: {
@@ -27,12 +29,15 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
       width: '100%',
       height: '100%',
       zIndex: 90,
+      backgroundColor: isMobile ? 'rgba(0,0,0,0.2)' : 'transparent',
     },
     panel: {
       position: 'fixed',
-      top: `calc(${theme.spacing['Space.L']} + 44px + ${theme.spacing['Space.M']})`,
-      right: theme.spacing['Space.L'],
-      width: '280px',
+      top: isMobile ? 'auto' : `calc(${theme.spacing['Space.L']} + 44px + ${theme.spacing['Space.M']})`,
+      bottom: isMobile ? theme.spacing['Space.L'] : 'auto',
+      right: isMobile ? theme.spacing['Space.L'] : theme.spacing['Space.L'],
+      left: isMobile ? theme.spacing['Space.L'] : 'auto',
+      width: isMobile ? 'auto' : '320px',
       padding: theme.spacing['Space.L'],
       backgroundColor: theme.Color.Base.Surface['2'],
       borderRadius: theme.radius['Radius.L'],
@@ -43,6 +48,7 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
       display: 'flex',
       flexDirection: 'column',
       gap: theme.spacing['Space.M'],
+      backdropFilter: 'blur(10px)',
     },
     title: {
       ...theme.Type.Readable.Title.S,
@@ -51,8 +57,10 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
     },
     settingRow: {
       display: 'flex',
+      flexDirection: isMobile ? 'column' : 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: isMobile ? 'flex-start' : 'center',
+      gap: isMobile ? theme.spacing['Space.S'] : '0',
     },
     label: {
       ...theme.Type.Readable.Body.M,
@@ -61,6 +69,7 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
     buttonGroup: {
       display: 'flex',
       gap: theme.spacing['Space.XS'],
+      flexWrap: 'wrap',
     },
     button: {
       ...theme.Type.Readable.Label.M,
@@ -71,6 +80,9 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
       transition: `background-color ${theme.time['Time.2x']}, color ${theme.time['Time.2x']}`,
       backgroundColor: 'transparent',
       color: theme.Color.Base.Content['2'],
+      flex: isMobile ? '1 0 auto' : '0 1 auto',
+      textAlign: 'center',
+      minWidth: isMobile ? '70px' : 'auto',
     },
     activeButton: {
       backgroundColor: theme.Color.Accent.Surface['1'],
@@ -85,8 +97,16 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
   };
 
   const panelVariants = {
-    hidden: { opacity: 0, y: -20, scale: 0.95 },
-    visible: { opacity: 1, y: 0, scale: 1 },
+    hidden: { 
+      opacity: 0, 
+      y: isMobile ? 40 : -20, 
+      scale: isMobile ? 1 : 0.95 
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0, 
+      scale: 1 
+    },
   };
 
   return (
@@ -107,14 +127,14 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
             initial="hidden"
             animate="visible"
             exit="hidden"
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} // Premium elastic ease
           >
             <h3 style={styles.title}>Performance Settings</h3>
             
             <div style={styles.settingRow}>
                 <span style={styles.label}>Resolution</span>
                 <div style={styles.buttonGroup}>
-                    {(['ultra', 'performance', 'balanced', 'high'] as const).map(res => (
+                    {(['performance', 'balanced', 'high'] as const).map(res => (
                         <button 
                             key={res}
                             style={{...styles.button, ...(settings.resolution === res ? styles.activeButton : {})}}

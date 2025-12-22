@@ -1,5 +1,4 @@
 
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -38,7 +37,6 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
     
     // ADJUSTED FAR PLANE: 2000 is safer for depth buffer precision on mobile GPUs
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
-    camera.position.set(0, 5, 12); 
 
     const renderer = new THREE.WebGLRenderer({ 
       antialias: antiAliasing, // Standard MSAA only if requested
@@ -54,9 +52,7 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
     
     containerRef.current.appendChild(renderer.domElement);
 
-    // --- POST PROCESSING (Fake AA / Ethereal Feel) ---
-    // If standard AA is disabled, we enable a soft bloom pipeline.
-    // This blurs harsh edges ("Fake AA") and adds the requested "Ethereal Feel".
+    // --- POST PROCESSING ---
     if (!antiAliasing) {
       const composer = new EffectComposer(renderer);
       composer.setPixelRatio(pixelRatio);
@@ -65,17 +61,15 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
       const renderPass = new RenderPass(scene, camera);
       composer.addPass(renderPass);
 
-      // Ethereal Bloom: Softens edges and adds dream-like glow
       const bloomPass = new UnrealBloomPass(
         new THREE.Vector2(width, height),
-        themeName === 'light' ? 0.02 : 0.35, // Day mode bloom is now almost off
-        0.5,  // Radius: Soft spread
-        0.2   // Threshold: Low threshold to soften geometry edges, not just bright lights
+        themeName === 'light' ? 0.02 : 0.35, 
+        0.5,
+        0.2
       );
       bloomPassRef.current = bloomPass;
       composer.addPass(bloomPass);
 
-      // Ensures colors match the standard render pipeline
       const outputPass = new OutputPass();
       composer.addPass(outputPass);
 
@@ -130,7 +124,7 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
         composerRef.current.dispose();
         composerRef.current = null;
       }
-      bloomPassRef.current = null; // Also clear bloom pass ref
+      bloomPassRef.current = null;
 
       renderer.dispose();
       renderer.forceContextLoss(); 
@@ -140,7 +134,7 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
         containerRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [onInit, onUpdate, antiAliasing, themeName]); // Re-run effect if AA or theme changes
+  }, [onInit, antiAliasing]); // themeName removed from deps to prevent re-mounting and camera reset
 
   useEffect(() => {
     if (rendererRef.current) {
@@ -151,11 +145,8 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
     }
   }, [pixelRatio]);
 
-  // Effect to specifically handle bloom strength changes when theme toggles
   useEffect(() => {
     if (bloomPassRef.current) {
-      // Day mode: Minimal bloom, almost imperceptible.
-      // Night mode: stronger bloom for the ethereal glow
       bloomPassRef.current.strength = themeName === 'light' ? 0.02 : 0.35;
     }
   }, [themeName]);

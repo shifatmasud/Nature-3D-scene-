@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -50,14 +51,14 @@ const typography = {
   Type: {
     Expressive: {
       Display: {
-        L: { fontSize: { desktop: '56px', tablet: '52px', mobile: '48px' }, lineHeight: 1.2, fontWeight: 700, letterSpacing: '-0.02em', tag: 'h1', fontFamily: "'Bbas Neue', sans-serif" },
-        M: { fontSize: { desktop: '44px', tablet: '40px', mobile: '40px' }, lineHeight: 1.2, fontWeight: 700, letterSpacing: '-0.02em', tag: 'h2', fontFamily: "'Bebas Neue', sans-serif" },
-        S: { fontSize: '36px', lineHeight: 1.2, fontWeight: 700, letterSpacing: '-0.02em', tag: 'h3', fontFamily: "'Bebas Neue', sans-serif" },
+        L: { fontSize: { desktop: '56px', tablet: '52px', mobile: '40px' }, lineHeight: 1.1, fontWeight: 700, letterSpacing: '-0.02em', tag: 'h1', fontFamily: "'Bebas Neue', sans-serif" },
+        M: { fontSize: { desktop: '44px', tablet: '40px', mobile: '32px' }, lineHeight: 1.2, fontWeight: 700, letterSpacing: '-0.02em', tag: 'h2', fontFamily: "'Bebas Neue', sans-serif" },
+        S: { fontSize: { desktop: '36px', tablet: '32px', mobile: '28px' }, lineHeight: 1.2, fontWeight: 700, letterSpacing: '-0.02em', tag: 'h3', fontFamily: "'Bebas Neue', sans-serif" },
       },
       Headline: {
-        L: { fontSize: '32px', lineHeight: 1.25, fontWeight: 700, letterSpacing: '0em', tag: 'h4', fontFamily: "'Bebas Neue', sans-serif" },
-        M: { fontSize: '28px', lineHeight: 1.25, fontWeight: 700, letterSpacing: '0em', tag: 'h5', fontFamily: "'Bebas Neue', sans-serif" },
-        S: { fontSize: '24px', lineHeight: 1.25, fontWeight: 700, letterSpacing: '0em', tag: 'h6', fontFamily: "'Bebas Neue', sans-serif" },
+        L: { fontSize: { desktop: '32px', mobile: '24px' }, lineHeight: 1.25, fontWeight: 700, letterSpacing: '0em', tag: 'h4', fontFamily: "'Bebas Neue', sans-serif" },
+        M: { fontSize: { desktop: '28px', mobile: '20px' }, lineHeight: 1.25, fontWeight: 700, letterSpacing: '0em', tag: 'h5', fontFamily: "'Bebas Neue', sans-serif" },
+        S: { fontSize: { desktop: '24px', mobile: '18px' }, lineHeight: 1.25, fontWeight: 700, letterSpacing: '0em', tag: 'h6', fontFamily: "'Bebas Neue', sans-serif" },
       },
       Quote: { fontSize: '24px', lineHeight: 1.5, fontWeight: 400, letterSpacing: '0.01em', tag: 'blockquote', fontFamily: "'Comic Neue', cursive" },
       Data: { fontSize: '12px', lineHeight: 1.5, fontWeight: 400, letterSpacing: '0.03em', tag: 'code', fontFamily: "'Victor Mono', monospace" },
@@ -72,7 +73,6 @@ const typography = {
         L: { fontSize: '16px', lineHeight: '24px', fontWeight: 400, letterSpacing: '0.01em', tag: 'p', fontFamily: "'Inter', sans-serif" },
         M: { fontSize: '14px', lineHeight: '20px', fontWeight: 400, letterSpacing: '0.01em', tag: 'p', fontFamily: "'Inter', sans-serif" },
         S: { fontSize: '12px', lineHeight: '16px', fontWeight: 400, letterSpacing: '0.01em', tag: 'p', fontFamily: "'Inter', sans-serif" },
-        // New responsive token for subheadings
         PageSubheading: { fontSize: { mobile: '14px', tablet: '16px' }, lineHeight: { mobile: '20px', tablet: '24px' }, fontWeight: 400, letterSpacing: '0.01em', tag: 'p', fontFamily: "'Inter', sans-serif" },
       },
       Label: {
@@ -84,7 +84,15 @@ const typography = {
   }
 };
 
-const spacing = { 'Space.XS': px(Base.Unit.Space * 1), 'Space.S': px(Base.Unit.Space * 2), 'Space.M': px(Base.Unit.Space * 3), 'Space.L': px(Base.Unit.Space * 4), 'Space.XL': px(Base.Unit.Space * 6), 'Space.XXL': px(Base.Unit.Space * 8), 'Space.XXXL': px(Base.Unit.Space * 12) };
+const spacing = { 
+  'Space.XS': px(Base.Unit.Space * 1), 
+  'Space.S': px(Base.Unit.Space * 2), 
+  'Space.M': px(Base.Unit.Space * 3), 
+  'Space.L': px(Base.Unit.Space * 4), 
+  'Space.XL': px(Base.Unit.Space * 6), 
+  'Space.XXL': { desktop: px(Base.Unit.Space * 8), mobile: px(Base.Unit.Space * 4) },
+  'Space.XXXL': { desktop: px(Base.Unit.Space * 12), mobile: px(Base.Unit.Space * 6) }
+};
 const radius = { 'Radius.S': px(Base.Unit.Radius * 1), 'Radius.M': px(Base.Unit.Radius * 2), 'Radius.L': px(Base.Unit.Radius * 3), 'Radius.XL': px(Base.Unit.Radius * 4), 'Radius.Full': px(9999) };
 const effects = { 'Effect.Shadow.Drop.1': '0 2px 4px rgba(0,0,0,0.1)', 'Effect.Shadow.Drop.2': '0 4px 8px rgba(0,0,0,0.12)', 'Effect.Shadow.Drop.3': '0 8px 16px rgba(0,0,0,0.15)', 'Effect.Shadow.Inset.1': 'inset 0 1px 2px rgba(0,0,0,0.1)' };
 const time = { 'Time.1x': `${Base.Unit.Time * 1}ms`, 'Time.2x': `${Base.Unit.Time * 2}ms`, 'Time.3x': `${Base.Unit.Time * 3}ms`, 'Time.4x': `${Base.Unit.Time * 4}ms`, 'Time.Subtle.1': `${Base.Unit.Time * 1 + 50}ms`, 'Time.Subtle.2': `${Base.Unit.Time * 2 + 50}ms` };
@@ -99,7 +107,6 @@ const isResponsiveObject = (value: any): value is { [key in Breakpoint]?: any } 
   return value && typeof value === 'object' && ('mobile' in value || 'tablet' in value || 'desktop' in value);
 };
 
-// Recursively traverses the theme tokens and resolves any responsive values.
 const resolveTokens = (obj: any, breakpoint: Breakpoint): any => {
   const resolved: { [key: string]: any } = {};
   for (const key in obj) {
@@ -119,19 +126,15 @@ const resolveTokens = (obj: any, breakpoint: Breakpoint): any => {
 
 // --- GLOBAL STYLES & THEME PROVIDER ---
 
-const GlobalStyles = () => { /* ... (no changes needed) ... */
+const GlobalStyles = () => {
     const globalCss = `
       *, *::before, *::after { box-sizing: border-box; }
       html, body, #root { height: 100%; margin: 0; padding: 0; font-family: ${typography.Type.Readable.Body.M.fontFamily}; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
-      body { transition: background-color ${time['Time.3x']} ease; }
+      body { transition: background-color ${time['Time.3x']} ease; overflow: hidden; }
     `;
     return <style>{globalCss}</style>;
 };
 
-// FIX: Add a utility type to create a "resolved" version of the theme type.
-// This recursively processes the theme, converting responsive objects (e.g., { mobile: '14px', tablet: '16px' })
-// into their resolved value type (e.g., string). This makes the theme type-safe for consumption
-// in components after the `resolveTokens` function has run.
 type Resolved<T> = T extends { mobile: any } | { tablet: any } | { desktop: any }
   ? T[keyof T]
   : T extends object
@@ -140,13 +143,10 @@ type Resolved<T> = T extends { mobile: any } | { tablet: any } | { desktop: any 
 
 type ResolvedRawTheme = Resolved<typeof rawTheme>;
 
-
 type ThemeName = 'light' | 'dark';
 type ThemeContextType = {
   themeName: ThemeName;
   setThemeName: (themeName: ThemeName) => void;
-  // FIX: Use the ResolvedRawTheme to ensure the theme context provides the correctly typed,
-  // resolved theme object to consumers, preventing type errors in components.
   theme: typeof lightThemeColors & ResolvedRawTheme;
 };
 
@@ -159,7 +159,6 @@ export const ThemeProvider = ({ children }: React.PropsWithChildren) => {
   const smartTheme = useMemo(() => {
     const colorTheme = themes[themeName];
     const resolvedRawTheme = resolveTokens(rawTheme, breakpoint);
-    // Combine the static color theme with the dynamically resolved tokens
     return { ...colorTheme, ...resolvedRawTheme };
   }, [themeName, breakpoint]);
 

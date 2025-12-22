@@ -1,5 +1,4 @@
 
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -10,6 +9,7 @@ import ThemeToggleButton from '../Core/ThemeToggleButton.tsx';
 import Scene from '../Package/Scene.tsx';
 import PerformanceSettingsPanel from '../Package/PerformanceSettings.tsx';
 import { motion } from 'framer-motion';
+import { useBreakpoint } from '../../hooks/useBreakpoint.tsx';
 
 export type PerformanceSettings = {
   resolution: 'high' | 'balanced' | 'performance' | 'ultra';
@@ -20,13 +20,16 @@ export type PerformanceSettings = {
 
 const Welcome = () => {
   const { theme } = useTheme();
+  const breakpoint = useBreakpoint();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [performanceSettings, setPerformanceSettings] = useState<PerformanceSettings>({
     resolution: 'balanced',
     shadows: true,
     effects: true,
-    antiAliasing: false, // Disabled by default to use Ethereal Fake AA
+    antiAliasing: false,
   });
+
+  const isMobile = breakpoint === 'mobile';
 
   const styles: { [key: string]: React.CSSProperties } = {
     container: {
@@ -44,7 +47,9 @@ const Welcome = () => {
     settingsButton: {
         position: 'absolute',
         top: theme.spacing['Space.L'],
-        right: `calc(${theme.spacing['Space.L']} + 44px + ${theme.spacing['Space.S']})`,
+        right: isMobile 
+          ? `calc(${theme.spacing['Space.L']} + 44px + ${theme.spacing['Space.XS']})`
+          : `calc(${theme.spacing['Space.L']} + 44px + ${theme.spacing['Space.S']})`,
         width: '44px',
         height: '44px',
         borderRadius: theme.radius['Radius.Full'],
@@ -57,6 +62,7 @@ const Welcome = () => {
         color: theme.Color.Base.Content['2'],
         boxShadow: theme.effects['Effect.Shadow.Drop.1'],
         overflow: 'hidden',
+        zIndex: 5,
     },
      icon: {
       fontSize: '24px',
