@@ -33,14 +33,14 @@ const getDeviceSettings = (breakpoint: Breakpoint) => {
     case 'mobile':
       return {
         cameraPos: { y: 8, z: 18 },
-        grassCount: 7000,
+        grassPatchCount: 15,
         fireflyCount: 25,
         balloonCount: 2,
       };
     case 'tablet':
       return {
         cameraPos: { y: 6, z: 15 },
-        grassCount: 10000,
+        grassPatchCount: 25,
         fireflyCount: 35,
         balloonCount: 3,
       };
@@ -48,7 +48,7 @@ const getDeviceSettings = (breakpoint: Breakpoint) => {
     default:
       return {
         cameraPos: { y: 5, z: 12 },
-        grassCount: 15000,
+        grassPatchCount: 40,
         fireflyCount: 50,
         balloonCount: 4,
       };
@@ -171,7 +171,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
                     for (const pos of positions) {
                         const dx = x - pos.x;
                         const dz = z - pos.z;
-                        const distSq = dx * dx + dz * dz;
+                        const distSq = dx * dx * dz * dz;
                         if (distSq < minDistance * minDistance) {
                             validPosition = false;
                             break;
@@ -197,6 +197,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     const bushPositions = placeObjects(5, 'BUSH');
     const flowerPositions = placeObjects(5, 'FLOWER');
     const rockPositions = placeObjects(2, 'EMPTY');
+    const grassPatchPositions = placeObjects(deviceSettings.grassPatchCount, 'GRASS');
     
     // --- OBJECT CREATION ---
     const sky = createSky(scene, theme);
@@ -220,7 +221,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
         ...treePositions.map(p => ({...p, r: 1.2})),
         ...pinePositions.map(p => ({...p, r: 1.2}))
     ];
-    const grass = createGrass(scene, camera, theme, deviceSettings.grassCount, obstacles, layoutMap);
+    const grass = createGrass(scene, camera, theme, grassPatchPositions, obstacles, layoutMap);
 
     if (performanceSettings.effects) {
        const spread = 22;

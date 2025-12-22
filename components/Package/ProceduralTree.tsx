@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 // FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
-import { Vector3, CanvasTexture, SRGBColorSpace, Scene, Camera, Frustum, CylinderGeometry, PlaneGeometry, MeshStandardMaterial, DoubleSide, Matrix4, Color, Object3D, InstancedMesh } from 'three';
+// FIX: Add BufferGeometry and Float32BufferAttribute for custom leaf geometry.
+import { Vector3, CanvasTexture, SRGBColorSpace, Scene, Camera, Frustum, CylinderGeometry, PlaneGeometry, BufferGeometry, Float32BufferAttribute, MeshStandardMaterial, DoubleSide, Matrix4, Color, Object3D, InstancedMesh, Sphere } from 'three';
 import { getGroundElevation } from './Ground.tsx';
 
 // --- HELPERS ---
@@ -86,6 +87,55 @@ const createDenseClusterTexture = () => {
   return tex;
 };
 
+// --- NEW GEOMETRY GENERATOR FOR A LEAF CLUMP ---
+const createLeafClumpGeometry = () => {
+    const geometry = new BufferGeometry();
+    const positions: number[] = [];
+    const uvs: number[] = [];
+    const normals: number[] = [];
+    const indices: number[] = [];
+
+    const planeSize = 1.0;
+
+    const basePlane = [
+        { x: -planeSize / 2, y: 0, u: 0, v: 0 },
+        { x:  planeSize / 2, y: 0, u: 1, v: 0 },
+        { x: -planeSize / 2, y: planeSize, u: 0, v: 1 },
+        { x:  planeSize / 2, y: planeSize, u: 1, v: 1 }
+    ];
+
+    const baseIndices = [0, 1, 2, 1, 3, 2];
+    const numPlanes = 3;
+    let vertOffset = 0;
+
+    for (let i = 0; i < numPlanes; i++) {
+        const angle = (i / numPlanes) * Math.PI;
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+        
+        const nx = -s;
+        const nz = c;
+
+        basePlane.forEach(v => {
+            const rx = v.x * c;
+            const rz = v.x * s;
+            positions.push(rx, v.y, rz);
+            uvs.push(v.u, v.v);
+            normals.push(nx, 0, nz);
+        });
+
+        baseIndices.forEach(idx => indices.push(vertOffset + idx));
+        vertOffset += 4;
+    }
+
+    geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
+    geometry.setAttribute('normal', new Float32BufferAttribute(normals, 3));
+    geometry.setIndex(indices);
+    geometry.computeBoundingSphere();
+    return geometry;
+};
+
 // --- LOGIC ---
 
 export const createTrees = (
@@ -122,8 +172,8 @@ export const createTrees = (
         // GEOMETRY
         const woodGeo = new CylinderGeometry(0.3, 1.0, 1, 3);
         woodGeo.translate(0, 0.5, 0); 
-
-        const leafGeo = new PlaneGeometry(1, 1, 1, 1);
+        
+        const leafGeo = createLeafClumpGeometry();
 
         // MATERIALS
         const trunkMaterial = new MeshStandardMaterial({
@@ -219,8 +269,6 @@ export const createTrees = (
                 vDistToCam = length(instanceWorldPos.xyz - uCameraPosition);
 
                 float id = hash(vec2(instanceMatrix[3].x, instanceMatrix[3].z));
-                float dist = length(uv - 0.5);
-                transformed.z -= dist * dist * 1.5 * step(0.9, abs(normal.z));
                 
                 float anim_lod_start = 3.0;
                 float anim_lod_end = 6.0;
@@ -264,10 +312,11 @@ export const createTrees = (
             );
         };
         
-        type LeafInstance = { matrix: Matrix4, color: Color };
+        type LeafInstance = { matrix: Matrix4, color: Color, sortKey: number };
+        type ManagedTree = { mesh: InstancedMesh, center: Vector3, fullCount: number, boundingSphere: Sphere };
+        const managedTrees: ManagedTree[] = [];
         
         const allWoodMatrices: Matrix4[] = [];
-        const allLeafInstances: LeafInstance[] = [];
         
         const _pos = new Vector3();
         const _target = new Vector3();
@@ -313,7 +362,8 @@ export const createTrees = (
                 branchTips.push(new Vector3(0, 1, 0).applyMatrix4(dummy.matrix));
             }
 
-            const leavesPerCluster = 300; 
+            const leafInstancesThisTree: LeafInstance[] = [];
+            const leavesPerCluster = 80; 
             for (const tip of branchTips) {
                 const clusterRadius = 1.4 + Math.random() * 0.8;
                 for (let l = 0; l < leavesPerCluster; l++) {
@@ -324,7 +374,7 @@ export const createTrees = (
                     dummy.rotateZ(Math.random() * Math.PI * 2);
                     const dist = _target.distanceTo(tip);
                     const scaleFalloff = 1.0 - (dist / clusterRadius) * 0.5;
-                    const s = (1.8 + Math.random() * 1.0) * scaleFalloff;
+                    const s = (3.5 + Math.random() * 1.5) * scaleFalloff;
                     dummy.scale.set(s, s, s);
                     dummy.updateMatrix();
                     const color = new Color();
@@ -333,9 +383,31 @@ export const createTrees = (
                     else if (v > 0.35) color.setHex(0x88C488); 
                     else color.setHex(0x66A566);
                     color.offsetHSL(0, 0, (Math.random() - 0.5) * 0.08);
-                    allLeafInstances.push({ matrix: dummy.matrix.clone(), color });
+                    leafInstancesThisTree.push({ matrix: dummy.matrix.clone(), color, sortKey: Math.random() });
                 }
             }
+
+            leafInstancesThisTree.sort((a, b) => a.sortKey - b.sortKey);
+            
+            const leafMesh = new InstancedMesh(leafGeo, leafMaterial, leafInstancesThisTree.length);
+            leafInstancesThisTree.forEach((inst, i) => {
+                leafMesh.setMatrixAt(i, inst.matrix);
+                leafMesh.setColorAt(i, inst.color);
+            });
+            leafMesh.castShadow = false;
+            leafMesh.receiveShadow = false;
+            scene.add(leafMesh);
+
+            const treeCenter = new Vector3(p.x, treeY + trunkHeight / 2, p.z);
+            const treeRadius = trunkHeight / 2 + 2.2; // trunkHeight/2 + clusterRadius + clusterRandomness
+            const boundingSphere = new Sphere(treeCenter, treeRadius);
+
+            managedTrees.push({
+                mesh: leafMesh,
+                center: treeCenter,
+                fullCount: leafInstancesThisTree.length,
+                boundingSphere
+            });
         }
         
         const woodMesh = new InstancedMesh(woodGeo, trunkMaterial, allWoodMatrices.length);
@@ -344,41 +416,46 @@ export const createTrees = (
         woodMesh.receiveShadow = false;
         scene.add(woodMesh);
 
-        // --- SORT FOR LOD ---
-        const tempPos = new Vector3();
-        allLeafInstances.sort((a, b) => {
-            const distA = tempPos.setFromMatrixPosition(a.matrix).lengthSq();
-            const distB = tempPos.setFromMatrixPosition(b.matrix).lengthSq();
-            return distA - distB;
-        });
-
-        const leafMesh = new InstancedMesh(leafGeo, leafMaterial, allLeafInstances.length);
-        allLeafInstances.forEach((inst, i) => {
-            leafMesh.setMatrixAt(i, inst.matrix);
-            leafMesh.setColorAt(i, inst.color);
-        });
-        leafMesh.castShadow = false;
-        leafMesh.receiveShadow = false;
-        scene.add(leafMesh);
+        const LOD0_DIST = 12.0;
+        const LOD1_DIST = 18.0;
         
         update = (time: number, frustum: Frustum) => {
             customUniforms.uTime.value = time;
             customUniforms.uCameraPosition.value.copy(camera.position);
 
-            // Geometry LOD (reducing instance count) has been removed.
-            // LOD is now handled exclusively by animation fading in the vertex shader.
+            for (const tree of managedTrees) {
+                if (!frustum.intersectsSphere(tree.boundingSphere)) {
+                    tree.mesh.visible = false;
+                    continue;
+                }
+
+                tree.mesh.visible = true;
+                const dist = camera.position.distanceTo(tree.center);
+                
+                if (dist < LOD0_DIST) {
+                    tree.mesh.count = tree.fullCount;
+                } else if (dist < LOD1_DIST) {
+                    tree.mesh.count = Math.floor(tree.fullCount * 0.6);
+                } else {
+                    tree.mesh.count = Math.floor(tree.fullCount * 0.4);
+                }
+            }
         };
 
         cleanup = () => {
             scene.remove(woodMesh);
-            scene.remove(leafMesh);
             woodGeo.dispose();
-            leafGeo.dispose();
             trunkMaterial.dispose();
+            woodMesh.dispose();
+
+            for (const tree of managedTrees) {
+                scene.remove(tree.mesh);
+                tree.mesh.dispose();
+            }
+            
+            leafGeo.dispose();
             leafMaterial.dispose();
             clusterTexture.dispose();
-            woodMesh.dispose();
-            leafMesh.dispose();
         };
     } catch (e) {
         console.error("Tree generation failed", e);

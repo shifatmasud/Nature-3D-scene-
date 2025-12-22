@@ -271,11 +271,9 @@ export const createBushes = (
             managedBushes.push({ mesh: instancedMesh, center, fullCount: leavesPerBush, boundingSphere });
         }
         
-        // AGGRESSIVE LOD DISTANCES
         const LOD0_DIST = 6.0;
         const LOD1_DIST = 12.0;
         const LOD2_DIST = 18.0;
-        const CULL_DIST = 22.0;
         
         update = (time: number, frustum: Frustum) => {
             customUniforms.uTime.value = time;
@@ -286,25 +284,19 @@ export const createBushes = (
                     bush.mesh.visible = false;
                     continue;
                 }
-
-                const dist = camera.position.distanceTo(bush.center);
-                
-                if (dist > CULL_DIST) {
-                    bush.mesh.visible = false;
-                    continue;
-                }
                 
                 bush.mesh.visible = true;
+                const dist = camera.position.distanceTo(bush.center);
 
                 if (dist < LOD0_DIST) {
                     bush.mesh.count = bush.fullCount;
                 } else if (dist < LOD1_DIST) {
-                    bush.mesh.count = Math.floor(bush.fullCount * 0.4);
+                    bush.mesh.count = Math.floor(bush.fullCount * 0.6);
                 } else if (dist < LOD2_DIST) {
-                    bush.mesh.count = Math.floor(bush.fullCount * 0.1);
+                    bush.mesh.count = Math.floor(bush.fullCount * 0.3);
                 } else {
                     // Let shader dithering handle the final fade-out
-                    bush.mesh.count = Math.floor(bush.fullCount * 0.1);
+                    bush.mesh.count = Math.floor(bush.fullCount * 0.3);
                 }
             }
         };

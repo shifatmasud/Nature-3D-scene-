@@ -1,12 +1,11 @@
-
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 // FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
-import { CanvasTexture, SRGBColorSpace, LinearMipmapLinearFilter, LinearFilter, BufferGeometry, Float32BufferAttribute, Scene, Camera, Frustum, Vector3, MeshStandardMaterial, DoubleSide, Matrix4, Color, Object3D, Box3, InstancedMesh, InstancedBufferAttribute } from 'three';
+import { CanvasTexture, SRGBColorSpace, LinearMipmapLinearFilter, LinearFilter, BufferGeometry, Float32BufferAttribute, Scene, Camera, Frustum, Vector3, MeshStandardMaterial, DoubleSide, Matrix4, Color, Object3D, Sphere, InstancedMesh, InstancedBufferAttribute } from 'three';
 import { ZONE_COLORS } from './LayoutMap.tsx';
+import { getGroundElevation } from './Ground.tsx';
 
 // --- HELPERS ---
 
@@ -84,15 +83,16 @@ const createTuftGeometry = () => {
 
     // Base Plane with 2 Height Segments (3 Rows) for bending
     const basePlane = [
-        { x: -0.5, y: 0.0, u: 0, v: 0 }, { x:  0.5, y: 0.0, u: 1, v: 0 },
-        { x: -0.5, y: 0.5, u: 0, v: 0.5 }, { x:  0.5, y: 0.5, u: 1, v: 0.5 },
-        { x: -0.5, y: 1.0, u: 0, v: 1 }, { x:  0.5, y: 1.0, u: 1, v: 1 }
+        { x: -0.75, y: 0.0, u: 0, v: 0 }, { x:  0.75, y: 0.0, u: 1, v: 0 },
+        { x: -0.75, y: 0.5, u: 0, v: 0.5 }, { x:  0.75, y: 0.5, u: 1, v: 0.5 },
+        { x: -0.75, y: 1.0, u: 0, v: 1 }, { x:  0.75, y: 1.0, u: 1, v: 1 }
     ];
     
     const baseIndices = [ 0, 1, 2,  1, 3, 2,  2, 3, 4,  3, 5, 4 ];
     
+    // OPTIMIZED: Reduced planes from 4 to 2 for 50% less geometry
     const planes = [
-        { angle: 0 }, { angle: (Math.PI * 2) / 3 }, { angle: (Math.PI * 2) / 3 * 2 }
+        { angle: 0 }, { angle: Math.PI / 2 }
     ];
 
     let vertOffset = 0;
@@ -127,7 +127,7 @@ export const createGrass = (
     scene: Scene, 
     camera: Camera, 
     theme: any, 
-    tuftCount: number, 
+    positions: {x: number, z: number}[],
     obstacles: {x: number, z: number, r?: number}[] = [],
     layoutMap: ImageData
 ) => {
@@ -138,11 +138,12 @@ export const createGrass = (
 
     let cleanup = () => {};
     let update = (time: number, frustum: Frustum) => {};
+    let grassMesh: InstancedMesh | null = null;
 
     try {
-        const SPREAD = 20.0;
-        const GRID_SIZE = 10; 
-        const CELL_SIZE = SPREAD / GRID_SIZE;
+        const patchCount = positions.length;
+        const tuftsPerPatch = 260;
+        const patchRadius = 2.5;
 
         const customUniforms = { 
             uTime: { value: 0 },
@@ -290,94 +291,78 @@ export const createGrass = (
             );
         };
         
-        // --- CLUSTER GENERATION ---
         type TuftData = { matrix: Matrix4, color: Color, phase: number };
-        const clusters: TuftData[][] = Array.from({ length: GRID_SIZE * GRID_SIZE }, () => []);
+        const allTufts: TuftData[] = [];
         const dummy = new Object3D();
         const color = new Color();
         
         const MAP_RES = layoutMap.width;
+        const SPREAD = 20.0;
         const grassColor = ZONE_COLORS.GRASS;
         const flowerColor = ZONE_COLORS.FLOWER;
 
-        for (let i = 0; i < tuftCount; i++) {
-            let x = 0, z = 0;
-            let attempts = 0;
-            let valid = false;
+        for (let i = 0; i < patchCount; i++) {
+            const patchPos = positions[i];
 
-            while (!valid && attempts < 10) {
-                x = (Math.random() - 0.5) * SPREAD;
-                z = (Math.random() - 0.5) * SPREAD;
-                
+            for (let j = 0; j < tuftsPerPatch; j++) {
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.sqrt(Math.random()) * patchRadius;
+                const x = patchPos.x + Math.cos(angle) * r;
+                const z = patchPos.z + Math.sin(angle) * r;
+
                 const u = (x / SPREAD + 0.5);
                 const v = (z / SPREAD + 0.5);
+                if (u < 0 || u > 1 || v < 0 || v > 1) continue;
+
                 const mapX = Math.floor(u * MAP_RES);
                 const mapY = Math.floor(v * MAP_RES);
                 const idx = (mapY * MAP_RES + mapX) * 4;
-                const r = layoutMap.data[idx];
-                const g = layoutMap.data[idx+1];
-                const b = layoutMap.data[idx+2];
+                const R = layoutMap.data[idx];
+                const G = layoutMap.data[idx+1];
+                const B = layoutMap.data[idx+2];
                 
-                const isGrassZone = (r === grassColor[0] && g === grassColor[1] && b === grassColor[2]);
-                const isFlowerZone = (r === flowerColor[0] && g === flowerColor[1] && b === flowerColor[2]);
+                const isGrassZone = (R === grassColor[0] && G === grassColor[1] && B === grassColor[2]);
+                const isFlowerZone = (R === flowerColor[0] && G === flowerColor[1] && B === flowerColor[2]);
+                if (!isGrassZone && !isFlowerZone) continue;
+                
+                const scale = 1.5 + Math.random() * 1.0;
+                const scaleH = scale * (0.8 + Math.random() * 0.4);
 
-                if (isGrassZone || isFlowerZone) {
-                    valid = true;
-                }
-                attempts++;
+                dummy.position.set(x, 0, z); // Y handled in shader
+                dummy.rotation.y = Math.random() * Math.PI * 2;
+                dummy.scale.set(scale, scaleH, scale);
+                dummy.updateMatrix();
+
+                const v_color = Math.random();
+                if (v_color > 0.6) color.setHex(0xB2D8B2); 
+                else if (v_color > 0.2) color.setHex(0x88C488); 
+                else color.setHex(0x66A566);
+                color.offsetHSL((Math.random() - 0.5) * 0.05, 0, 0);
+                
+                allTufts.push({
+                    matrix: dummy.matrix.clone(),
+                    color: color.clone(),
+                    phase: Math.random() * Math.PI * 2,
+                });
             }
-
-            if (!valid) continue;
-            
-            const gridX = Math.floor((x / SPREAD + 0.5) * GRID_SIZE);
-            const gridZ = Math.floor((z / SPREAD + 0.5) * GRID_SIZE);
-            const clusterIndex = Math.min(gridX + gridZ * GRID_SIZE, clusters.length - 1);
-            
-            const scale = 1.5 + Math.random() * 1.0;
-            const scaleH = scale * (0.8 + Math.random() * 0.4);
-
-            dummy.position.set(x, 0, z);
-            dummy.rotation.y = Math.random() * Math.PI * 2;
-            dummy.scale.set(scale, scaleH, scale);
-            dummy.updateMatrix();
-
-            const v = Math.random();
-            if (v > 0.6) color.setHex(0xB2D8B2); 
-            else if (v > 0.2) color.setHex(0x88C488); 
-            else color.setHex(0x66A566);
-            color.offsetHSL((Math.random() - 0.5) * 0.05, 0, 0);
-            
-            clusters[clusterIndex].push({
-                matrix: dummy.matrix.clone(),
-                color: color.clone(),
-                phase: Math.random() * Math.PI * 2
-            });
         }
-        
-        type ManagedCluster = { mesh: InstancedMesh, center: Vector3, boundingBox: Box3 };
-        const managedClusters: ManagedCluster[] = [];
 
-        for (let i = 0; i < clusters.length; i++) {
-            const clusterData = clusters[i];
-            if (clusterData.length === 0) continue;
-            
-            clusterData.sort((a, b) => a.phase - b.phase);
+        if (allTufts.length > 0) {
+            grassMesh = new InstancedMesh(sharedGeometry, sharedMaterial, allTufts.length);
+            grassMesh.castShadow = false;
+            grassMesh.receiveShadow = false;
+            grassMesh.frustumCulled = false; // We rely on shader dithering for culling
 
-            const mesh = new InstancedMesh(sharedGeometry, sharedMaterial, clusterData.length);
-            mesh.castShadow = false;
-            mesh.receiveShadow = false;
-            mesh.frustumCulled = true;
-
-            const phases = new Float32Array(clusterData.length);
-            for (let j = 0; j < clusterData.length; j++) {
-                const data = clusterData[j];
-                mesh.setMatrixAt(j, data.matrix);
-                mesh.setColorAt(j, data.color);
+            const phases = new Float32Array(allTufts.length);
+            for (let j = 0; j < allTufts.length; j++) {
+                const data = allTufts[j];
+                grassMesh.setMatrixAt(j, data.matrix);
+                grassMesh.setColorAt(j, data.color);
                 phases[j] = data.phase;
             }
-            mesh.geometry.setAttribute('aPhase', new InstancedBufferAttribute(phases, 1));
+            grassMesh.geometry.setAttribute('aPhase', new InstancedBufferAttribute(phases, 1));
             
-            scene.add(mesh);
+            scene.add(grassMesh);
         }
         
         update = (time: number, frustum: Frustum) => {
@@ -386,17 +371,10 @@ export const createGrass = (
         };
 
         cleanup = () => {
-            const meshesToRemove: InstancedMesh[] = [];
-            scene.traverse((object) => {
-                if (object instanceof InstancedMesh && object.material === sharedMaterial) {
-                    meshesToRemove.push(object);
-                }
-            });
-            meshesToRemove.forEach(mesh => {
-                scene.remove(mesh);
-                mesh.dispose();
-            });
-
+            if (grassMesh) {
+                scene.remove(grassMesh);
+                grassMesh.dispose();
+            }
             sharedGeometry.dispose();
             sharedMaterial.dispose();
             grassTexture.dispose();
