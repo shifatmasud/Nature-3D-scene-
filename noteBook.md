@@ -14,6 +14,8 @@ A log of all tasks, ideas, and progress for this project.
 
 ## Done
 
+-   **[2024-05-22 10:00]**: Adjusted `Scene.tsx` lighting and fog parameters to create a significantly lighter and more peaceful, anime-like night scene. This involved brightening `nightHemiGround`, `nightHemiSky`, increasing `moonLight.intensity`, boosting night `hemiLight.intensity`, and lightening `nightFog`.
+-   **[2024-05-22 09:30]**: Implemented ultra performance optimizations for `Sky` and `ProceduralFirefly` components: reduced `SphereGeometry` segments for both, and added shader-based LOD (distance-based fading) to fireflies for performance. Fixed a camera dependency issue in `ProceduralFirefly.tsx`.
 -   **[2024-05-21 13:45]**: Adjusted `ProceduralGrass` resolution to 128px and lowered alpha test threshold to 0.4. This creates a balance between sharp anime silhouettes and smooth, non-aliased rendering.
 -   **[2024-05-21 13:00]**: Added `ProceduralGrass.tsx` with single-draw-call instancing, wind animation, and LOD system. Integrated into Scene.
 -   **[2024-05-21 12:35]**: Fixed LOD crash in `ProceduralBush` by injecting camera dependency.

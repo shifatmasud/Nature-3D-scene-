@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -24,28 +25,25 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
 
     const scene = new THREE.Scene();
     
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    // ADJUSTED FAR PLANE: 2000 is safer for depth buffer precision on mobile GPUs
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 2000);
     camera.position.set(0, 5, 12); 
 
-    // PERFORMANCE OPTIMIZATION: Low-Mid Quality Settings
     const renderer = new THREE.WebGLRenderer({ 
-      antialias: false, // DISABLED for performance
+      antialias: true, 
       alpha: false,
       powerPreference: 'high-performance',
-      stencil: false, // Disable stencil buffer if not needed
+      stencil: false,
       depth: true
     });
     renderer.setSize(width, height);
-    // Cap pixel ratio at 1.5 to prevents lag on high-DPI mobile screens
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0)); // Slightly higher for quality
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     
     containerRef.current.appendChild(renderer.domElement);
 
-    // --- USER LOGIC INJECTION ---
     const cleanupUserLogic = onInit(scene, camera, renderer);
 
-    // --- RESIZE ---
     const handleResize = () => {
       if (!containerRef.current) return;
       const w = containerRef.current.clientWidth;
@@ -57,7 +55,6 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
 
     window.addEventListener('resize', handleResize);
 
-    // --- LOOP ---
     let animationFrameId: number;
     const clock = new THREE.Clock();
 
@@ -73,7 +70,6 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
     };
     animate();
 
-    // --- CLEANUP ---
     return () => {
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
