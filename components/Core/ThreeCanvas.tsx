@@ -154,4 +154,4 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
   return <div ref={containerRef} className={className} style={{ width: '100%', height: '100%', ...style }} />;
 };
 
-export default ThreeCanvas;
+export default React.memo(ThreeCanvas);

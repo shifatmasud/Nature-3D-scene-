@@ -338,7 +338,8 @@ export const createTrees = (
             const trunkMatrix = dummy.matrix.clone();
             const trunkTop = new THREE.Vector3(0, 1, 0).applyMatrix4(trunkMatrix);
 
-            const branchesPerTree = 15; 
+            // OPTIMIZED: Reduced branches and leaves per cluster
+            const branchesPerTree = 7; 
             const branchTips: THREE.Vector3[] = [trunkTop];
             allWoodMatrices.push(trunkMatrix);
 
@@ -362,7 +363,8 @@ export const createTrees = (
             }
 
             const leafInstancesThisTree: LeafInstance[] = [];
-            const leavesPerCluster = 80; 
+            // OPTIMIZED: Reduced leaves per cluster
+            const leavesPerCluster = 25; 
             for (const tip of branchTips) {
                 const clusterRadius = 1.4 + Math.random() * 0.8;
                 for (let l = 0; l < leavesPerCluster; l++) {
@@ -415,29 +417,15 @@ export const createTrees = (
         woodMesh.receiveShadow = false;
         scene.add(woodMesh);
 
-        const LOD0_DIST = 12.0;
-        const LOD1_DIST = 18.0;
-        
         update = (time: number, frustum: THREE.Frustum) => {
             customUniforms.uTime.value = time;
             customUniforms.uCameraPosition.value.copy(camera.position);
 
+            // Per user request, normal trees are not culled and do not have their leaf count reduced by LOD.
+            // Animation LOD is still handled in the shader based on distance.
             for (const tree of managedTrees) {
-                if (!frustum.intersectsSphere(tree.boundingSphere)) {
-                    tree.mesh.visible = false;
-                    continue;
-                }
-
                 tree.mesh.visible = true;
-                const dist = camera.position.distanceTo(tree.center);
-                
-                if (dist < LOD0_DIST) {
-                    tree.mesh.count = tree.fullCount;
-                } else if (dist < LOD1_DIST) {
-                    tree.mesh.count = Math.floor(tree.fullCount * 0.6);
-                } else {
-                    tree.mesh.count = Math.floor(tree.fullCount * 0.4);
-                }
+                tree.mesh.count = tree.fullCount;
             }
         };
 

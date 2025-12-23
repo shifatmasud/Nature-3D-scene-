@@ -265,8 +265,9 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
         const nightFog = new THREE.Color(0x455065); 
         const currentFogColor = new THREE.Color().lerpColors(nightFog, dayFog, currentDayFactor);
         
-        const fogNear = 8;
-        const fogFar = 28;
+        // OPTIMIZED: Increased fog distance to make it less intrusive and cleaner
+        const fogNear = 15;
+        const fogFar = 60;
 
         if (scene.fog) {
             const fog = scene.fog as THREE.Fog;
@@ -304,7 +305,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
       updatablesRef.current = [];
       sceneRef.current = null;
     };
-  }, [performanceSettings.shadows, performanceSettings.effects, deviceSettings]); 
+  }, [performanceSettings.effects, deviceSettings]); // OPTIMIZED: Removed shadows dependency to avoid unnecessary re-init since shadows are currently disabled logic-wise
 
   const pixelRatio = useMemo(() => {
     switch (performanceSettings.resolution) {
@@ -340,4 +341,4 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
   );
 };
 
-export default Scene;
+export default React.memo(Scene);
