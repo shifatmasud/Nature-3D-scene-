@@ -14,6 +14,10 @@ A log of all tasks, ideas, and progress for this project.
 
 ## Done
 
+-   **[2024-05-22 11:45]**: Fully stopped star movement by anchoring sky mesh to camera position and switching to local coordinates for noise calculation. This eliminates parallax shimmering when zooming or translating the camera.
+-   **[2024-05-22 11:30]**: Removed star twinkling animation for a more stable, serene night sky.
+-   **[2024-05-22 11:15]**: Drastically slowed down star and cloud animations in `Sky.tsx` as requested.
+-   **[2024-05-22 11:00]**: Enabled fireflies by default in the performance settings initial state.
 -   **[2024-05-22 10:30]**: Implemented a performance settings panel to control resolution, shadows, and effects (fireflies), addressing FPS drop issues. Users can now dynamically adjust graphics for better performance.
 -   **[2024-05-22 10:00]**: Adjusted `Scene.tsx` lighting and fog parameters to create a significantly lighter and more peaceful, anime-like night scene. This involved brightening `nightHemiGround`, `nightHemiSky`, increasing `moonLight.intensity`, boosting night `hemiLight.intensity`, and lightening `nightFog`.
 -   **[2024-05-22 09:30]**: Implemented ultra performance optimizations for `Sky` and `ProceduralFirefly` components: reduced `SphereGeometry` segments for both, and added shader-based LOD (distance-based fading) to fireflies for performance. Fixed a camera dependency issue in `ProceduralFirefly.tsx`.

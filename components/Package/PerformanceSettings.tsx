@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -153,6 +154,20 @@ const PerformanceSettingsPanel: React.FC<PerformanceSettingsPanelProps> = ({ isO
                             {res.charAt(0).toUpperCase() + res.slice(1)}
                         </button>
                     ))}
+                </div>
+            </div>
+
+            <div style={styles.settingRow}>
+                <span style={styles.label}>Reflections</span>
+                <div style={styles.buttonGroup}>
+                     <button 
+                        style={{...styles.button, ...(!settings.waterReflection ? styles.activeButton : {})}}
+                        onClick={() => setSettings(s => ({...s, waterReflection: false}))}
+                    >Off</button>
+                    <button 
+                        style={{...styles.button, ...(settings.waterReflection ? styles.activeButton : {})}}
+                        onClick={() => setSettings(s => ({...s, waterReflection: true}))}
+                    >On</button>
                 </div>
             </div>
 

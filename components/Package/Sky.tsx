@@ -2,16 +2,24 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-// FIX: Replaced named imports with a namespace import for Three.js to resolve module resolution errors.
-import * as THREE from 'three';
+import { 
+  Scene, 
+  Vector3, 
+  SphereGeometry, 
+  ShaderMaterial, 
+  BackSide, 
+  Mesh 
+} from 'three';
 
 // --- GLSL SHADERS ---
 
 const vertexShader = `
 varying vec3 vWorldPosition;
+varying vec3 vLocalPosition;
 varying vec2 vUv;
 
 void main() {
+  vLocalPosition = position;
   vec4 worldPosition = modelMatrix * vec4(position, 1.0);
   vWorldPosition = worldPosition.xyz;
   vUv = uv;
@@ -23,6 +31,7 @@ const fragmentShader = `
 uniform vec3 uSunPosition;
 uniform float uTime;
 varying vec3 vWorldPosition;
+varying vec3 vLocalPosition;
 varying vec2 vUv;
 
 // --- NOISE FUNCTIONS ---
@@ -50,19 +59,20 @@ float fbm(vec3 p) {
 
 void main() {
     vec3 viewDirection = normalize(vWorldPosition);
+    vec3 localDirection = normalize(vLocalPosition);
     vec3 sunDirection = normalize(uSunPosition);
     
     float sunY = sunDirection.y;
     
     // --- COLORS ---
-    vec3 dayTop = vec3(0.2, 0.6, 1.0); // Bright Blue
-    vec3 dayBottom = vec3(0.7, 0.9, 1.0); // White-Blue
+    vec3 dayTop = vec3(0.2, 0.6, 1.0); 
+    vec3 dayBottom = vec3(0.7, 0.9, 1.0);
     
-    vec3 nightTop = vec3(0.02, 0.02, 0.1); // Deep Purple-Black
-    vec3 nightBottom = vec3(0.1, 0.1, 0.2); // Dark Blue
+    vec3 nightTop = vec3(0.02, 0.02, 0.1); 
+    vec3 nightBottom = vec3(0.1, 0.1, 0.2);
     
-    vec3 sunsetTop = vec3(0.5, 0.3, 0.6); // Purple
-    vec3 sunsetBottom = vec3(1.0, 0.5, 0.2); // Orange
+    vec3 sunsetTop = vec3(0.5, 0.3, 0.6); 
+    vec3 sunsetBottom = vec3(1.0, 0.5, 0.2); 
     
     // --- MIXING ---
     float dayFactor = smoothstep(-0.2, 0.2, sunY);
@@ -78,27 +88,8 @@ void main() {
     float horizon = smoothstep(-0.1, 0.4, viewDirection.y);
     vec3 skyColor = mix(skyBottom, skyTop, horizon);
     
-    // --- STARS (Night only) ---
-    // Layer 1: Larger, brighter stars
-    float stars1 = noise(viewDirection * 150.0);
-    stars1 = smoothstep(0.985, 1.0, stars1);
-
-    // Layer 2: Smaller, denser, fainter stars
-    float stars2 = noise(viewDirection * 450.0);
-    stars2 = smoothstep(0.97, 1.0, stars2) * 0.5; // Fainter
-
-    // Twinkle effect based on time
-    float twinkleNoise = noise(vec3(viewDirection.xy * 80.0, uTime * 0.1));
-    float twinkle = mix(0.5, 1.0, twinkleNoise);
-    
-    float totalStars = (stars1 + stars2) * twinkle;
-    
-    float starVisible = totalStars * (1.0 - dayFactor);
-    skyColor += vec3(starVisible);
-
     // --- CLOUDS ---
-    float cloudSpeed = 0.03;
-    // ADJUSTED SCALE for 600 radius
+    float cloudSpeed = 0.01; 
     vec3 cloudPos = vWorldPosition * 0.008 + vec3(uTime * cloudSpeed, 0.0, 0.0);
     float cloudNoise = fbm(cloudPos);
     
@@ -116,34 +107,34 @@ void main() {
 }
 `;
 
-export const createSky = (scene: THREE.Scene, theme: any) => {
-    let update = (time: number, sunPos: THREE.Vector3) => {};
+export const createSky = (scene: Scene, theme: any) => {
+    let update = (time: number, sunPos: Vector3, cameraPos: Vector3) => {};
     let cleanup = () => {};
 
     try {
-        // OPTIMIZED: Reduced geometry segments to 12x12 for low-res sky dome
-        const geometry = new THREE.SphereGeometry(600, 12, 12);
+        const geometry = new SphereGeometry(600, 12, 12);
         
         const uniforms = {
             uTime: { value: 0 },
-            uSunPosition: { value: new THREE.Vector3(0, 1, 0) }
+            uSunPosition: { value: new Vector3(0, 1, 0) }
         };
 
-        const material = new THREE.ShaderMaterial({
+        const material = new ShaderMaterial({
             vertexShader,
             fragmentShader,
             uniforms,
-            side: THREE.BackSide,
+            side: BackSide,
             depthWrite: false,
             fog: false 
         });
 
-        const skyMesh = new THREE.Mesh(geometry, material);
-        // Render sky first to ensure it's background
+        const skyMesh = new Mesh(geometry, material);
         skyMesh.renderOrder = -10; 
         scene.add(skyMesh);
 
-        update = (time: number, sunPos: THREE.Vector3) => {
+        update = (time: number, sunPos: Vector3, cameraPos: Vector3) => {
+            // Anchor sky to camera to prevent star parallax when zooming/moving
+            skyMesh.position.copy(cameraPos);
             uniforms.uTime.value = time;
             uniforms.uSunPosition.value.copy(sunPos);
         };

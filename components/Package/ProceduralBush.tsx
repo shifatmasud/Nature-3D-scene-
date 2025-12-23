@@ -1,9 +1,25 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-// FIX: Replaced named imports with a namespace import for Three.js to resolve module resolution errors.
-import * as THREE from 'three';
+// FIX: Switched to named imports for Three.js members to ensure correct type mapping and property access.
+import { 
+  CanvasTexture, 
+  SRGBColorSpace, 
+  Scene, 
+  Camera, 
+  Frustum, 
+  Vector3, 
+  IcosahedronGeometry, 
+  Mesh, 
+  PlaneGeometry, 
+  MeshStandardMaterial, 
+  DoubleSide, 
+  InstancedMesh, 
+  Object3D, 
+  Color 
+} from 'three';
 import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js';
 import { getGroundElevation } from './Ground.tsx';
 
@@ -19,7 +35,7 @@ const mulberry32 = (a: number) => {
 };
 
 const createDenseClusterTexture = () => {
-  const size = 32; // OPTIMIZED: Reduced texture size to 32px
+  const size = 32;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -45,7 +61,6 @@ const createDenseClusterTexture = () => {
   const cx = size / 2;
   const cy = size / 2;
 
-  // Layer 1: Background
   for(let i=0; i<20; i++) {
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * (size * 0.25);
@@ -55,7 +70,6 @@ const createDenseClusterTexture = () => {
     drawLeaf(x, y, len, angle - Math.PI/2 + (Math.random()*0.5 - 0.25));
   }
 
-  // Layer 2: Main body
   for(let i=0; i<20; i++) {
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * (size * 0.15); 
@@ -65,7 +79,6 @@ const createDenseClusterTexture = () => {
     drawLeaf(x, y, len, angle - Math.PI/2 + (Math.random()*1.0 - 0.5));
   }
 
-  // Layer 3: Center details
   for(let i=0; i<10; i++) {
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * (size * 0.05);
@@ -75,47 +88,44 @@ const createDenseClusterTexture = () => {
     drawLeaf(x, y, len, Math.random() * Math.PI * 2);
   }
 
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace; 
+  const tex = new CanvasTexture(canvas);
+  tex.colorSpace = SRGBColorSpace; 
   return tex;
 };
 
 // --- LOGIC ---
 
 export const createBushes = (
-    scene: THREE.Scene, 
-    camera: THREE.Camera, 
+    scene: Scene, 
+    camera: Camera, 
     theme: any, 
     positions: {x: number, z: number}[]
 ) => {
     const originalRandom = Math.random;
-    const seed = 123456; 
-    const rng = mulberry32(seed);
+    const rng = mulberry32(123456);
     Math.random = rng;
 
     let cleanup = () => {};
-    let update = (time: number, frustum: THREE.Frustum) => {};
+    let update = (time: number, frustum: Frustum) => {};
 
     try {
         const customUniforms = { 
           uTime: { value: 0 },
-          uCameraPosition: { value: new THREE.Vector3() } 
+          uCameraPosition: { value: new Vector3() } 
         };
-        const count = positions.length;
-
+        
         const baseRadius = 0.3; 
-        const baseGeo = new THREE.IcosahedronGeometry(baseRadius, 0);
-        const sampler = new MeshSurfaceSampler(new THREE.Mesh(baseGeo)).build();
-        const planeGeo = new THREE.PlaneGeometry(1, 1, 1, 1);
+        const baseGeo = new IcosahedronGeometry(baseRadius, 0);
+        const sampler = new MeshSurfaceSampler(new Mesh(baseGeo)).build();
+        const planeGeo = new PlaneGeometry(1, 1, 1, 1);
 
         const clusterTexture = createDenseClusterTexture();
-        const material = new THREE.MeshStandardMaterial({
+        const material = new MeshStandardMaterial({
           map: clusterTexture,
           alphaTest: 0.1, 
-          side: THREE.DoubleSide,
+          side: DoubleSide,
           roughness: 0.9, 
           metalness: 0.0,
-          flatShading: false,
           transparent: false,
         });
 
@@ -138,7 +148,6 @@ export const createBushes = (
             '#include <begin_vertex>',
             `
             #include <begin_vertex>
-
             vec4 instanceWorldPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
             vDistToCam = length(instanceWorldPos.xyz - uCameraPosition);
             
@@ -200,30 +209,26 @@ export const createBushes = (
         };
 
         const leavesPerBush = 200; 
-        const dummy = new THREE.Object3D();
-        const upVector = new THREE.Vector3(0, 1, 0);
-        const _pos = new THREE.Vector3();
-        const _norm = new THREE.Vector3();
+        const totalLeaves = positions.length * leavesPerBush;
+        const globalMesh = new InstancedMesh(planeGeo, material, totalLeaves);
+        globalMesh.castShadow = false;
+        globalMesh.receiveShadow = false;
 
-        type LeafInstance = { matrix: THREE.Matrix4, color: THREE.Color, sortKey: number };
-        type ManagedBush = { mesh: THREE.InstancedMesh, center: THREE.Vector3, fullCount: number, boundingSphere: THREE.Sphere };
-        const managedBushes: ManagedBush[] = [];
+        const dummy = new Object3D();
+        const upVector = new Vector3(0, 1, 0);
+        const _pos = new Vector3();
+        const _norm = new Vector3();
 
-        for (let i = 0; i < count; i++) {
-            const tempLeaves: LeafInstance[] = [];
-            
+        let leafIdx = 0;
+        for (let i = 0; i < positions.length; i++) {
             const structureScale = 4.0 + Math.random() * 3.0; 
             const visualRadius = baseRadius * structureScale;
             
             const p = positions[i];
             const displacementScale = 0.3;
             const groundHeight = getGroundElevation(p.x, -p.z) * displacementScale;
-            const baseHeight = -1.5;
-            
-            const sinkAmount = 0.05;
-            const centerY = baseHeight + groundHeight + visualRadius - sinkAmount;
-            const center = new THREE.Vector3(p.x, centerY, p.z);
-            const boundingSphere = new THREE.Sphere(center, visualRadius);
+            const centerY = -1.5 + groundHeight + visualRadius - 0.05;
+            const center = new Vector3(p.x, centerY, p.z);
 
             for (let j = 0; j < leavesPerBush; j++) {
                 sampler.sample(_pos, _norm);
@@ -242,74 +247,33 @@ export const createBushes = (
                 dummy.scale.set(s, s, s);
                 dummy.updateMatrix();
 
-                const tempColor = new THREE.Color();
+                const tempColor = new Color();
                 const v = Math.random();
                 if(v > 0.7) tempColor.setHex(0xB2D8B2); 
                 else if(v > 0.3) tempColor.setHex(0x88C488); 
                 else tempColor.setHex(0x66A566);
                 if (Math.random() > 0.5) tempColor.offsetHSL(0, 0, 0.05);
 
-                tempLeaves.push({
-                    matrix: dummy.matrix.clone(),
-                    color: tempColor,
-                    sortKey: Math.random()
-                });
+                globalMesh.setMatrixAt(leafIdx, dummy.matrix);
+                globalMesh.setColorAt(leafIdx, tempColor);
+                leafIdx++;
             }
-            
-            tempLeaves.sort((a, b) => a.sortKey - b.sortKey);
-            
-            const instancedMesh = new THREE.InstancedMesh(planeGeo, material, leavesPerBush);
-            instancedMesh.castShadow = false;
-            instancedMesh.receiveShadow = false;
-
-            for(let j=0; j<leavesPerBush; j++) {
-                instancedMesh.setMatrixAt(j, tempLeaves[j].matrix);
-                instancedMesh.setColorAt(j, tempLeaves[j].color);
-            }
-            
-            scene.add(instancedMesh);
-            managedBushes.push({ mesh: instancedMesh, center, fullCount: leavesPerBush, boundingSphere });
         }
         
-        const LOD0_DIST = 6.0;
-        const LOD1_DIST = 12.0;
-        const LOD2_DIST = 18.0;
+        scene.add(globalMesh);
         
-        update = (time: number, frustum: THREE.Frustum) => {
+        update = (time: number, _frustum: Frustum) => {
             customUniforms.uTime.value = time;
             customUniforms.uCameraPosition.value.copy(camera.position);
-
-            for(const bush of managedBushes) {
-                if (!frustum.intersectsSphere(bush.boundingSphere)) {
-                    bush.mesh.visible = false;
-                    continue;
-                }
-                
-                bush.mesh.visible = true;
-                const dist = camera.position.distanceTo(bush.center);
-
-                if (dist < LOD0_DIST) {
-                    bush.mesh.count = bush.fullCount;
-                } else if (dist < LOD1_DIST) {
-                    bush.mesh.count = Math.floor(bush.fullCount * 0.6);
-                } else if (dist < LOD2_DIST) {
-                    bush.mesh.count = Math.floor(bush.fullCount * 0.3);
-                } else {
-                    // Let shader dithering handle the final fade-out
-                    bush.mesh.count = Math.floor(bush.fullCount * 0.3);
-                }
-            }
         };
 
         cleanup = () => {
-            for(const bush of managedBushes) {
-                scene.remove(bush.mesh);
-                bush.mesh.dispose();
-            }
+            scene.remove(globalMesh);
             planeGeo.dispose();
             baseGeo.dispose();
             clusterTexture.dispose();
             material.dispose();
+            globalMesh.dispose();
         };
     } catch (e) {
         console.error("Bush generation failed", e);

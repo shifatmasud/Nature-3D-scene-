@@ -1,23 +1,29 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-// FIX: Replaced named imports with a namespace import for Three.js to resolve module resolution errors.
-import * as THREE from 'three';
+// FIX: Switched to named imports for Three.js members to correctly resolve types and avoid namespace property errors.
+import { 
+  Scene, 
+  CircleGeometry, 
+  Color, 
+  ShaderMaterial 
+} from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 
-export const createWater = (scene: THREE.Scene, theme: any) => {
-    let update = (time: number, dayFactor: number) => {};
+export const createWater = (scene: Scene, theme: any) => {
+    let update = (time: number, dayFactor: number, reflectionEnabled: boolean) => {};
     let cleanup = () => {};
 
     try {
-        const waterGeometry = new THREE.CircleGeometry(20, 32);
+        const waterGeometry = new CircleGeometry(20, 32);
 
         const reflector = new Reflector(waterGeometry, {
             clipBias: 0.003,
             textureWidth: 256, // Low res for performance and stylized look
             textureHeight: 256,
-            color: new THREE.Color(0x8899aa), // Base water color
+            color: new Color(0x8899aa), // Base water color
         });
 
         reflector.position.y = -1.6;
@@ -28,14 +34,23 @@ export const createWater = (scene: THREE.Scene, theme: any) => {
             uDayFactor: { value: 1.0 },
             uWaveFrequency: { value: 10.0 },
             uWaveAmplitude: { value: 0.005 },
-            uNightColor: { value: new THREE.Color(0x3a4a5a) },
-            uDayColor: { value: new THREE.Color(0xA9DDF3) },
-            uFoamColor: { value: new THREE.Color(0xffffff) },
+            uNightColor: { value: new Color(0x3a4a5a) },
+            uDayColor: { value: new Color(0xA9DDF3) },
+            uFoamColor: { value: new Color(0xffffff) },
             uShoreDistance: { value: 10.5 },
             uFoamSoftness: { value: 1.0 },
+            uReflectionEnabled: { value: 1.0 }, // Reactive toggle
         };
 
-        const material = reflector.material as THREE.ShaderMaterial;
+        // --- PERFORMANCE OPTIMIZATION: Prevent reflection rendering when disabled ---
+        const originalOnBeforeRender = reflector.onBeforeRender;
+        reflector.onBeforeRender = function(renderer, scene, camera) {
+            if (customUniforms.uReflectionEnabled.value > 0.5) {
+                originalOnBeforeRender.call(this, renderer, scene, camera);
+            }
+        };
+
+        const material = reflector.material as ShaderMaterial;
         material.onBeforeCompile = (shader) => {
             shader.uniforms.uTime = customUniforms.uTime;
             shader.uniforms.uDayFactor = customUniforms.uDayFactor;
@@ -46,6 +61,7 @@ export const createWater = (scene: THREE.Scene, theme: any) => {
             shader.uniforms.uFoamColor = customUniforms.uFoamColor;
             shader.uniforms.uShoreDistance = customUniforms.uShoreDistance;
             shader.uniforms.uFoamSoftness = customUniforms.uFoamSoftness;
+            shader.uniforms.uReflectionEnabled = customUniforms.uReflectionEnabled;
 
             shader.vertexShader = `
                 uniform float uTime;
@@ -70,14 +86,15 @@ export const createWater = (scene: THREE.Scene, theme: any) => {
                 uniform vec3 uFoamColor;
                 uniform float uShoreDistance;
                 uniform float uFoamSoftness;
+                uniform float uReflectionEnabled;
                 varying vec3 vWorldPosition;
 
                 float hash(float n) { return fract(sin(n) * 43758.5453123); }
                 float noise(vec3 x) {
-                    vec3 p = floor(x);
+                    vec3 i = floor(x);
                     vec3 f = fract(x);
                     f = f * f * (3.0 - 2.0 * f);
-                    float n = p.x + p.y * 57.0 + p.z * 113.0;
+                    float n = i.x + i.y * 57.0 + i.z * 113.0;
                     return mix(mix(mix(hash(n + 0.0), hash(n + 1.0), f.x),
                                    mix(hash(n + 57.0), hash(n + 58.0), f.x), f.y),
                                mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),
@@ -100,7 +117,7 @@ export const createWater = (scene: THREE.Scene, theme: any) => {
                 );
                 
                 vec4 reflectedColor = texture2D(tDiffuse, distortedUv);
-                float reflectionFactor = reflectedColor.a;
+                float reflectionFactor = reflectedColor.a * uReflectionEnabled;
                 
                 vec3 waterBaseColor = mix(uNightColor, uDayColor, uDayFactor);
 
@@ -125,15 +142,16 @@ export const createWater = (scene: THREE.Scene, theme: any) => {
 
         scene.add(reflector);
 
-        update = (time: number, dayFactor: number) => {
+        update = (time: number, dayFactor: number, reflectionEnabled: boolean) => {
             customUniforms.uTime.value = time;
             customUniforms.uDayFactor.value = dayFactor;
+            customUniforms.uReflectionEnabled.value = reflectionEnabled ? 1.0 : 0.0;
         };
 
         cleanup = () => {
             scene.remove(reflector);
             waterGeometry.dispose();
-            (reflector.material as THREE.ShaderMaterial).dispose();
+            (material).dispose();
         };
 
     } catch (e) {

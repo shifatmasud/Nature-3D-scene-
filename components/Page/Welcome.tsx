@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -16,6 +17,7 @@ export type PerformanceSettings = {
   shadows: boolean;
   effects: boolean;
   antiAliasing: boolean;
+  waterReflection: boolean;
 };
 
 const Welcome = () => {
@@ -25,8 +27,9 @@ const Welcome = () => {
   const [performanceSettings, setPerformanceSettings] = useState<PerformanceSettings>({
     resolution: 'ultra',
     shadows: false,
-    effects: false,
+    effects: true, // Fireflies enabled by default
     antiAliasing: false,
+    waterReflection: true,
   });
 
   const getSettingsButtonRight = () => {

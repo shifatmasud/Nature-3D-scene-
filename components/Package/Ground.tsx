@@ -1,9 +1,22 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-// FIX: Replaced named imports with a namespace import for Three.js to resolve module resolution errors.
-import * as THREE from 'three';
+// FIX: Switched to named imports for Three.js members to resolve type definition mismatch and property availability issues.
+import { 
+  CanvasTexture, 
+  RepeatWrapping, 
+  SRGBColorSpace, 
+  Scene, 
+  PlaneGeometry, 
+  MeshStandardMaterial, 
+  DoubleSide, 
+  Color, 
+  Vector3, 
+  Mesh, 
+  PerspectiveCamera 
+} from 'three';
 
 // Shared math for ground elevation.
 export const getGroundElevation = (x: number, y: number) => {
@@ -45,10 +58,10 @@ const createGroundGrassTexture = () => {
         ctx.restore();
     }
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.colorSpace = THREE.SRGBColorSpace;
+    const texture = new CanvasTexture(canvas);
+    texture.wrapS = RepeatWrapping;
+    texture.wrapT = RepeatWrapping;
+    texture.colorSpace = SRGBColorSpace;
     return texture;
 };
 
@@ -89,14 +102,14 @@ const createBakedShadowTexture = (
     objectPositions.rocks.forEach(p => drawShadow(p.x, -p.z, width * 0.08, 0.35));
     objectPositions.bushes.forEach(p => drawShadow(p.x, -p.z, width * 0.06, 0.25));
 
-    const texture = new THREE.CanvasTexture(canvas);
+    const texture = new CanvasTexture(canvas);
     texture.flipY = false;
     return texture;
 };
 
 
 export const createGround = (
-    scene: THREE.Scene, 
+    scene: Scene, 
     theme: any,
     shadowCasters: {
         rocks: {x: number, z: number}[],
@@ -108,25 +121,25 @@ export const createGround = (
   let cleanup = () => {};
 
   try {
-    const geometry = new THREE.PlaneGeometry(20, 20, 16, 16);
+    const geometry = new PlaneGeometry(20, 20, 16, 16);
     const grassImpostorTexture = createGroundGrassTexture();
     const shadowTexture = createBakedShadowTexture(256, 256, shadowCasters, 20.0);
     
-    const material = new THREE.MeshStandardMaterial({
+    const material = new MeshStandardMaterial({
       color: 0x669966, 
       roughness: 1.0,
       metalness: 0.0,
-      side: THREE.DoubleSide,
+      side: DoubleSide,
       fog: true, 
     });
 
     const customUniforms = { 
       uTime: { value: 0 },
-      uColorHigh: { value: new THREE.Color(0x88C488) },
-      uColorLow: { value: new THREE.Color(0x66A566) },
+      uColorHigh: { value: new Color(0x88C488) },
+      uColorLow: { value: new Color(0x66A566) },
       uGrassTexture: { value: grassImpostorTexture },
       uShadowMap: { value: shadowTexture },
-      uCameraPosition: { value: new THREE.Vector3() },
+      uCameraPosition: { value: new Vector3() },
     };
 
     material.onBeforeCompile = (shader) => {
@@ -208,7 +221,7 @@ export const createGround = (
       );
     };
 
-    const mesh = new THREE.Mesh(geometry, material);
+    const mesh = new Mesh(geometry, material);
     mesh.rotation.x = -Math.PI / 2; 
     mesh.position.y = -1.5; 
     mesh.receiveShadow = false;
@@ -217,7 +230,7 @@ export const createGround = (
 
     update = (time: number) => {
       customUniforms.uTime.value = time;
-      const camera = scene.getObjectByProperty("isPerspectiveCamera", true) as THREE.PerspectiveCamera;
+      const camera = scene.getObjectByProperty("isPerspectiveCamera", true) as PerspectiveCamera;
       if (camera) {
           customUniforms.uCameraPosition.value.copy(camera.position);
       }
