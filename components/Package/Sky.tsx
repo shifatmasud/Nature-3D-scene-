@@ -2,8 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
-import { Scene, Vector3, SphereGeometry, ShaderMaterial, BackSide, Mesh } from 'three';
+// FIX: Replaced named imports with a namespace import for Three.js to resolve module resolution errors.
+import * as THREE from 'three';
 
 // --- GLSL SHADERS ---
 
@@ -116,34 +116,34 @@ void main() {
 }
 `;
 
-export const createSky = (scene: Scene, theme: any) => {
-    let update = (time: number, sunPos: Vector3) => {};
+export const createSky = (scene: THREE.Scene, theme: any) => {
+    let update = (time: number, sunPos: THREE.Vector3) => {};
     let cleanup = () => {};
 
     try {
         // OPTIMIZED: Reduced geometry segments to 12x12 for low-res sky dome
-        const geometry = new SphereGeometry(600, 12, 12);
+        const geometry = new THREE.SphereGeometry(600, 12, 12);
         
         const uniforms = {
             uTime: { value: 0 },
-            uSunPosition: { value: new Vector3(0, 1, 0) }
+            uSunPosition: { value: new THREE.Vector3(0, 1, 0) }
         };
 
-        const material = new ShaderMaterial({
+        const material = new THREE.ShaderMaterial({
             vertexShader,
             fragmentShader,
             uniforms,
-            side: BackSide,
+            side: THREE.BackSide,
             depthWrite: false,
             fog: false 
         });
 
-        const skyMesh = new Mesh(geometry, material);
+        const skyMesh = new THREE.Mesh(geometry, material);
         // Render sky first to ensure it's background
         skyMesh.renderOrder = -10; 
         scene.add(skyMesh);
 
-        update = (time: number, sunPos: Vector3) => {
+        update = (time: number, sunPos: THREE.Vector3) => {
             uniforms.uTime.value = time;
             uniforms.uSunPosition.value.copy(sunPos);
         };

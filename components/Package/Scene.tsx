@@ -3,9 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useRef, useCallback, useEffect, useMemo } from 'react';
-// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
-// FIX: Aliased the `Scene` import from Three.js to `ThreeScene` to resolve the naming conflict with the `Scene` component.
-import { Scene as ThreeScene, PerspectiveCamera, WebGLRenderer, HemisphereLight, DirectionalLight, Mesh, SphereGeometry, MeshBasicMaterial, MeshStandardMaterial, Vector3, Color, Fog, Frustum, Matrix4, Camera, MathUtils } from 'three';
+// FIX: Replaced named imports with a namespace import for Three.js to resolve module resolution errors.
+import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import ThreeCanvas from '../Core/ThreeCanvas.tsx';
 import { useTheme } from '../../Theme.tsx';
@@ -66,31 +65,31 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     themeTargetRef.current = themeName;
   }, [themeName]);
 
-  const updatablesRef = useRef<Array<(time: number, dayFactor: number, frustum: Frustum) => void>>([]);
+  const updatablesRef = useRef<Array<(time: number, dayFactor: number, frustum: THREE.Frustum) => void>>([]);
   const controlsRef = useRef<OrbitControls | null>(null);
   const firefliesRef = useRef<{ update: (time: number) => void; cleanup: () => void; } | null>(null);
-  const sceneRef = useRef<ThreeScene | null>(null);
-  const frustumRef = useRef(new Frustum());
-  const projScreenMatrixRef = useRef(new Matrix4());
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const frustumRef = useRef(new THREE.Frustum());
+  const projScreenMatrixRef = useRef(new THREE.Matrix4());
   
   const deviceSettings = useMemo(() => getDeviceSettings(breakpoint), [breakpoint]);
 
-  const initScene = useCallback((scene: ThreeScene, camera: PerspectiveCamera, renderer: WebGLRenderer) => {
+  const initScene = useCallback((scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => {
     sceneRef.current = scene;
 
     // --- CAMERA SETUP ---
     camera.position.set(0, deviceSettings.cameraPos.y, deviceSettings.cameraPos.z);
 
     // --- LIGHTING ---
-    const hemiLight = new HemisphereLight(0xffffff, 0x444444, 1.0); 
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0); 
     hemiLight.position.set(0, 50, 0);
     scene.add(hemiLight);
 
-    const sunLight = new DirectionalLight(0xFFFFFF, 2.5);
+    const sunLight = new THREE.DirectionalLight(0xFFFFFF, 2.5);
     sunLight.castShadow = false;
     scene.add(sunLight);
 
-    const moonLight = new DirectionalLight(0xCCDDFF, 0.0);
+    const moonLight = new THREE.DirectionalLight(0xCCDDFF, 0.0);
     moonLight.castShadow = false;
     scene.add(moonLight);
     
@@ -98,15 +97,15 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     scene.userData.moonLight = moonLight;
 
     // --- CELESTIAL BODIES ---
-    const sunMesh = new Mesh(
-      new SphereGeometry(6, 16, 16),
-      new MeshBasicMaterial({ color: 0xFFDD44, fog: false }) 
+    const sunMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(6, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xFFDD44, fog: false }) 
     );
     scene.add(sunMesh);
 
-    const moonMesh = new Mesh(
-      new SphereGeometry(4, 16, 16),
-      new MeshStandardMaterial({ 
+    const moonMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(4, 16, 16),
+      new THREE.MeshStandardMaterial({ 
         color: 0xDDDDFF, 
         emissive: 0xEEEEFF,
         emissiveIntensity: 0.6,
@@ -191,9 +190,9 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
         return positions;
     };
     
-    const treeAndPinePositions = placeObjects(6, 'TREE', 1000, 5.0);
-    const treePositions = treeAndPinePositions.slice(0, 3);
-    const pinePositions = treeAndPinePositions.slice(3);
+    const treeAndPinePositions = placeObjects(5, 'TREE', 1000, 5.0);
+    const treePositions = treeAndPinePositions.slice(0, 2);
+    const pinePositions = treeAndPinePositions.slice(2);
     const bushPositions = placeObjects(5, 'BUSH');
     const flowerPositions = placeObjects(5, 'FLOWER');
     const rockPositions = placeObjects(2, 'EMPTY');
@@ -228,15 +227,15 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
        firefliesRef.current = createFireflies(scene, theme, deviceSettings.fireflyCount, { width: spread, height: 4, depth: spread }, camera);
     }
 
-    const sunPos = new Vector3();
-    const moonPos = new Vector3();
+    const sunPos = new THREE.Vector3();
+    const moonPos = new THREE.Vector3();
     
-    const dayHemiGround = new Color(0x99CC99); 
-    const nightHemiGround = new Color(0x6a8a6c); 
-    const dayHemiSky = new Color(0xA9DDF3); 
-    const nightHemiSky = new Color(0x7b9cbe); 
+    const dayHemiGround = new THREE.Color(0x99CC99); 
+    const nightHemiGround = new THREE.Color(0x6a8a6c); 
+    const dayHemiSky = new THREE.Color(0xA9DDF3); 
+    const nightHemiSky = new THREE.Color(0x7b9cbe); 
 
-    const envUpdate = (time: number, dayFactor: number, frustum: Frustum) => {
+    const envUpdate = (time: number, dayFactor: number, frustum: THREE.Frustum) => {
         const targetFactor = themeTargetRef.current === 'light' ? 1.0 : 0.0;
         const lerpSpeed = 0.02;
         dayFactorRef.current += (targetFactor - dayFactorRef.current) * lerpSpeed;
@@ -246,36 +245,36 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
         const angle = (currentDayFactor - 0.5) * Math.PI; 
         
         sunPos.set(0, Math.sin(angle) * orbitRadius, Math.cos(angle) * orbitRadius);
-        sunPos.applyAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
+        sunPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4);
         moonPos.copy(sunPos).negate();
 
         sunMesh.position.copy(sunPos);
         moonMesh.position.copy(moonPos);
         sunLight.position.copy(sunPos);
-        sunLight.intensity = MathUtils.smoothstep(0.1, 0.7, currentDayFactor) * 2.5; 
+        sunLight.intensity = THREE.MathUtils.smoothstep(0.1, 0.7, currentDayFactor) * 2.5; 
 
         moonLight.position.copy(moonPos);
         const nightFactor = 1.0 - currentDayFactor;
-        moonLight.intensity = MathUtils.smoothstep(0.4, 0.9, nightFactor) * 4.0;
+        moonLight.intensity = THREE.MathUtils.smoothstep(0.4, 0.9, nightFactor) * 3.5;
         
         hemiLight.color.lerpColors(nightHemiSky, dayHemiSky, currentDayFactor);
         hemiLight.groundColor.lerpColors(nightHemiGround, dayHemiGround, currentDayFactor);
-        hemiLight.intensity = MathUtils.lerp(1.0, 1.2, currentDayFactor);
+        hemiLight.intensity = THREE.MathUtils.lerp(1.0, 1.2, currentDayFactor);
 
-        const dayFog = new Color(0xA9DDF3);
-        const nightFog = new Color(0x3a4a5a); 
-        const currentFogColor = new Color().lerpColors(nightFog, dayFog, currentDayFactor);
+        const dayFog = new THREE.Color(0xA9DDF3);
+        const nightFog = new THREE.Color(0x455065); 
+        const currentFogColor = new THREE.Color().lerpColors(nightFog, dayFog, currentDayFactor);
         
         const fogNear = 8;
-        const fogFar = 22;
+        const fogFar = 28;
 
         if (scene.fog) {
-            const fog = scene.fog as Fog;
+            const fog = scene.fog as THREE.Fog;
             fog.color.copy(currentFogColor);
             fog.near = fogNear;
             fog.far = fogFar;
         } else {
-            scene.fog = new Fog(currentFogColor, fogNear, fogFar);
+            scene.fog = new THREE.Fog(currentFogColor, fogNear, fogFar);
         }
         
         scene.background = currentFogColor;
@@ -317,7 +316,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     }
   }, [performanceSettings.resolution]);
 
-  const onUpdate = useCallback((time: number, camera: Camera) => {
+  const onUpdate = useCallback((time: number, camera: THREE.Camera) => {
     if (controlsRef.current) {
         controlsRef.current.update();
     }

@@ -2,8 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
-import { CanvasTexture, SRGBColorSpace, Scene, Camera, Frustum, Vector3, Color, CylinderGeometry, PlaneGeometry, MeshStandardMaterial, DoubleSide, Matrix4, Sphere, InstancedMesh, Object3D, InstancedBufferAttribute } from 'three';
+// FIX: Replaced named imports with a namespace import for Three.js to resolve module resolution errors.
+import * as THREE from 'three';
 import { getGroundElevation } from './Ground.tsx';
 
 // --- HELPERS ---
@@ -46,16 +46,16 @@ const createFlowerTexture = () => {
   ctx.fill();
   ctx.restore();
 
-  const tex = new CanvasTexture(canvas);
-  tex.colorSpace = SRGBColorSpace;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 };
 
 // --- LOGIC ---
 
 export const createFlowers = (
-    scene: Scene, 
-    camera: Camera,
+    scene: THREE.Scene, 
+    camera: THREE.Camera,
     theme: any, 
     positions: {x: number, z: number}[]
 ) => {
@@ -65,26 +65,26 @@ export const createFlowers = (
     Math.random = rng;
 
     let cleanup = () => {};
-    let update = (time: number, frustum: Frustum) => {};
+    let update = (time: number, frustum: THREE.Frustum) => {};
 
     try {
         const customUniforms = { 
             uTime: { value: 0 },
-            uCameraPosition: { value: new Vector3() }
+            uCameraPosition: { value: new THREE.Vector3() }
         };
         const patchCount = positions.length;
         const flowersPerPatch = 12;
 
         const palette = [
-            new Color(0xFFB7B2), // Pink
-            new Color(0xE0BBE4), // Purple
-            new Color(0xFFF4BD)  // Yellow
+            new THREE.Color(0xFFB7B2), // Pink
+            new THREE.Color(0xE0BBE4), // Purple
+            new THREE.Color(0xFFF4BD)  // Yellow
         ];
 
         // --- GEOMETRIES (SHARED) ---
-        const stemGeo = new CylinderGeometry(0.0, 0.015, 1, 3);
+        const stemGeo = new THREE.CylinderGeometry(0.0, 0.015, 1, 3);
         stemGeo.translate(0, 0.5, 0); 
-        const headGeo = new PlaneGeometry(1, 1);
+        const headGeo = new THREE.PlaneGeometry(1, 1);
         headGeo.translate(0, 0.5, 0);
         const headTexture = createFlowerTexture();
 
@@ -100,7 +100,7 @@ export const createFlowers = (
         `;
 
         // --- MATERIALS (SHARED) ---
-        const stemMaterial = new MeshStandardMaterial({
+        const stemMaterial = new THREE.MeshStandardMaterial({
             color: 0x558833,
             roughness: 1.0,
             metalness: 0.0,
@@ -160,10 +160,10 @@ export const createFlowers = (
             );
         };
         
-        const headMaterial = new MeshStandardMaterial({
+        const headMaterial = new THREE.MeshStandardMaterial({
             map: headTexture,
             alphaTest: 0.1,
-            side: DoubleSide,
+            side: THREE.DoubleSide,
             roughness: 1.0,
             metalness: 0.0,
             transparent: false,
@@ -245,8 +245,8 @@ export const createFlowers = (
             );
         };
         
-        type FlowerInstance = { stemMatrix: Matrix4, headMatrix: Matrix4, headColor: Color, info: {x: number, y: number, z: number}, sortKey: number };
-        type ManagedPatch = { stemsMesh: InstancedMesh, headsMesh: InstancedMesh, center: Vector3, boundingSphere: Sphere };
+        type FlowerInstance = { stemMatrix: THREE.Matrix4, headMatrix: THREE.Matrix4, headColor: THREE.Color, info: {x: number, y: number, z: number}, sortKey: number };
+        type ManagedPatch = { stemsMesh: THREE.InstancedMesh, headsMesh: THREE.InstancedMesh, center: THREE.Vector3, boundingSphere: THREE.Sphere };
         const managedPatches: ManagedPatch[] = [];
         
         const patchRadius = 0.6;
@@ -255,8 +255,8 @@ export const createFlowers = (
             const patchPos = positions[i];
             const gElev = getGroundElevation(patchPos.x, -patchPos.z) * 0.3;
             const patchY = -1.5 + gElev - 0.05;
-            const patchCenter = new Vector3(patchPos.x, patchY, patchPos.z);
-            const boundingSphere = new Sphere(patchCenter, patchRadius + 0.5);
+            const patchCenter = new THREE.Vector3(patchPos.x, patchY, patchPos.z);
+            const boundingSphere = new THREE.Sphere(patchCenter, patchRadius + 0.5);
             
             const tempFlowers: FlowerInstance[] = [];
 
@@ -270,12 +270,12 @@ export const createFlowers = (
                 const stemHeight = 0.5 * scale;
                 const headSize = 0.3 * scale;
 
-                const stemDummy = new Object3D();
+                const stemDummy = new THREE.Object3D();
                 stemDummy.position.set(flowerX, patchY, flowerZ);
                 stemDummy.scale.set(1, stemHeight, 1);
                 stemDummy.updateMatrix();
                 
-                const headDummy = new Object3D();
+                const headDummy = new THREE.Object3D();
                 headDummy.position.set(flowerX, patchY + stemHeight, flowerZ);
                 headDummy.updateMatrix();
 
@@ -290,8 +290,8 @@ export const createFlowers = (
             
             tempFlowers.sort((a,b) => a.sortKey - b.sortKey);
             
-            const stemsMesh = new InstancedMesh(stemGeo, stemMaterial, flowersPerPatch);
-            const headsMesh = new InstancedMesh(headGeo, headMaterial, flowersPerPatch);
+            const stemsMesh = new THREE.InstancedMesh(stemGeo, stemMaterial, flowersPerPatch);
+            const headsMesh = new THREE.InstancedMesh(headGeo, headMaterial, flowersPerPatch);
             const flowerInfo = new Float32Array(flowersPerPatch * 3);
             
             for(let j=0; j<flowersPerPatch; j++) {
@@ -304,7 +304,7 @@ export const createFlowers = (
                 flowerInfo[j * 3 + 2] = flower.info.z;
             }
 
-            headsMesh.geometry.setAttribute('aFlowerInfo', new InstancedBufferAttribute(flowerInfo, 3));
+            headsMesh.geometry.setAttribute('aFlowerInfo', new THREE.InstancedBufferAttribute(flowerInfo, 3));
             stemsMesh.castShadow = false;
             stemsMesh.receiveShadow = false;
             headsMesh.castShadow = false;
@@ -317,7 +317,7 @@ export const createFlowers = (
         
         const CULL_DIST = 15.0;
         
-        update = (time: number, frustum: Frustum) => {
+        update = (time: number, frustum: THREE.Frustum) => {
             customUniforms.uTime.value = time;
             customUniforms.uCameraPosition.value.copy(camera.position);
 

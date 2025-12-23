@@ -1,11 +1,9 @@
-
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
-import { Scene, Camera, Group, SphereGeometry, CylinderGeometry, MeshStandardMaterial, Vector3, Mesh, PointLight, MathUtils } from 'three';
+// FIX: Replaced named imports with a namespace import for Three.js to resolve module resolution errors.
+import * as THREE from 'three';
 
 // --- HELPERS ---
 const mulberry32 = (a: number) => {
@@ -17,7 +15,7 @@ const mulberry32 = (a: number) => {
   }
 };
 
-export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: number) => {
+export const createBalloons = (scene: THREE.Scene, camera: THREE.Camera, theme: any, count: number) => {
     const originalRandom = Math.random;
     const seed = 78910;
     const rng = mulberry32(seed);
@@ -27,21 +25,21 @@ export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: 
     let cleanup = () => {};
 
     try {
-        const group = new Group();
+        const group = new THREE.Group();
         
         // Simple procedural geometries
-        const balloonGeo = new SphereGeometry(1.5, 16, 12);
-        const basketGeo = new CylinderGeometry(0.4, 0.3, 0.5, 8);
-        const ropeGeo = new CylinderGeometry(0.02, 0.02, 1.2, 4);
+        const balloonGeo = new THREE.SphereGeometry(1.5, 16, 12);
+        const basketGeo = new THREE.CylinderGeometry(0.4, 0.3, 0.5, 8);
+        const ropeGeo = new THREE.CylinderGeometry(0.02, 0.02, 1.2, 4);
 
         // Vibrant Anime Red
         const balloonColor = 0xEE4444;
         
         const balloons: { 
-            mesh: Group, 
-            material: MeshStandardMaterial,
-            basketMaterial: MeshStandardMaterial,
-            pivot: Vector3, 
+            mesh: THREE.Group, 
+            material: THREE.MeshStandardMaterial,
+            basketMaterial: THREE.MeshStandardMaterial,
+            pivot: THREE.Vector3, 
             radius: number, 
             speed: number, 
             phase: number,
@@ -49,9 +47,9 @@ export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: 
         }[] = [];
 
         for (let i = 0; i < count; i++) {
-            const balloonGroup = new Group();
+            const balloonGroup = new THREE.Group();
             
-            const mat = new MeshStandardMaterial({ 
+            const mat = new THREE.MeshStandardMaterial({ 
                 color: balloonColor, 
                 roughness: 0.6,
                 metalness: 0.1,
@@ -61,19 +59,19 @@ export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: 
                 fog: false 
             });
 
-            const basketMat = new MeshStandardMaterial({ 
+            const basketMat = new THREE.MeshStandardMaterial({ 
                 color: 0x8B4513, 
                 roughness: 1.0 
             });
 
             // Balloon top
-            const mesh = new Mesh(balloonGeo, mat);
+            const mesh = new THREE.Mesh(balloonGeo, mat);
             mesh.scale.set(1, 1.3, 1);
             balloonGroup.add(mesh);
 
             // Ropes
             for(let j = 0; j < 4; j++) {
-                const rope = new Mesh(ropeGeo, basketMat);
+                const rope = new THREE.Mesh(ropeGeo, basketMat);
                 const angle = (j / 4) * Math.PI * 2;
                 rope.position.set(Math.cos(angle) * 0.8, -1.2, Math.sin(angle) * 0.8);
                 rope.rotation.z = (j % 2 === 0 ? 0.2 : -0.2);
@@ -81,12 +79,12 @@ export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: 
             }
 
             // Basket
-            const basket = new Mesh(basketGeo, basketMat);
+            const basket = new THREE.Mesh(basketGeo, basketMat);
             basket.position.y = -2.0;
             balloonGroup.add(basket);
 
             // Inner light for night mode
-            const innerLight = new PointLight(balloonColor, 0, 8);
+            const innerLight = new THREE.PointLight(balloonColor, 0, 8);
             innerLight.position.y = -1;
             balloonGroup.add(innerLight);
 
@@ -96,7 +94,7 @@ export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: 
                 mesh: balloonGroup,
                 material: mat,
                 basketMaterial: basketMat,
-                pivot: new Vector3((Math.random() - 0.5) * 40, 0, (Math.random() - 0.5) * 40),
+                pivot: new THREE.Vector3((Math.random() - 0.5) * 40, 0, (Math.random() - 0.5) * 40),
                 radius: 12 + Math.random() * 18,
                 speed: 0.08 + Math.random() * 0.15,
                 phase: Math.random() * Math.PI * 2,
@@ -111,7 +109,7 @@ export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: 
                 const dist = b.mesh.position.distanceTo(camera.position);
                 const anim_lod_start = 20.0;
                 const anim_lod_end = 40.0;
-                const anim_lod_factor = 1.0 - MathUtils.smoothstep(anim_lod_start, anim_lod_end, dist);
+                const anim_lod_factor = 1.0 - THREE.MathUtils.smoothstep(anim_lod_start, anim_lod_end, dist);
 
                 const angle = time * b.speed + b.phase;
                 b.mesh.position.x = b.pivot.x + Math.cos(angle) * b.radius;
@@ -133,7 +131,7 @@ export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: 
 
                 // Night glow
                 b.material.emissiveIntensity = nightFactor * 0.9;
-                const light = b.mesh.children.find(c => c instanceof PointLight) as PointLight;
+                const light = b.mesh.children.find(c => c instanceof THREE.PointLight) as THREE.PointLight;
                 if (light) {
                     light.intensity = nightFactor * 25;
                 }

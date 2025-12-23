@@ -2,22 +2,22 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
-import { Scene, CircleGeometry, Color, ShaderMaterial } from 'three';
+// FIX: Replaced named imports with a namespace import for Three.js to resolve module resolution errors.
+import * as THREE from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 
-export const createWater = (scene: Scene, theme: any) => {
+export const createWater = (scene: THREE.Scene, theme: any) => {
     let update = (time: number, dayFactor: number) => {};
     let cleanup = () => {};
 
     try {
-        const waterGeometry = new CircleGeometry(20, 32);
+        const waterGeometry = new THREE.CircleGeometry(20, 32);
 
         const reflector = new Reflector(waterGeometry, {
             clipBias: 0.003,
             textureWidth: 256, // Low res for performance and stylized look
             textureHeight: 256,
-            color: new Color(0x8899aa), // Base water color
+            color: new THREE.Color(0x8899aa), // Base water color
         });
 
         reflector.position.y = -1.6;
@@ -28,14 +28,14 @@ export const createWater = (scene: Scene, theme: any) => {
             uDayFactor: { value: 1.0 },
             uWaveFrequency: { value: 10.0 },
             uWaveAmplitude: { value: 0.005 },
-            uNightColor: { value: new Color(0x3a4a5a) },
-            uDayColor: { value: new Color(0xA9DDF3) },
-            uFoamColor: { value: new Color(0xffffff) },
+            uNightColor: { value: new THREE.Color(0x3a4a5a) },
+            uDayColor: { value: new THREE.Color(0xA9DDF3) },
+            uFoamColor: { value: new THREE.Color(0xffffff) },
             uShoreDistance: { value: 10.5 },
             uFoamSoftness: { value: 1.0 },
         };
 
-        const material = reflector.material as ShaderMaterial;
+        const material = reflector.material as THREE.ShaderMaterial;
         material.onBeforeCompile = (shader) => {
             shader.uniforms.uTime = customUniforms.uTime;
             shader.uniforms.uDayFactor = customUniforms.uDayFactor;
@@ -133,7 +133,7 @@ export const createWater = (scene: Scene, theme: any) => {
         cleanup = () => {
             scene.remove(reflector);
             waterGeometry.dispose();
-            (reflector.material as ShaderMaterial).dispose();
+            (reflector.material as THREE.ShaderMaterial).dispose();
         };
 
     } catch (e) {

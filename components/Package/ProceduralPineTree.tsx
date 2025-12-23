@@ -2,8 +2,8 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-// FIX: Replaced wildcard import with named imports for Three.js to resolve type errors.
-import { CanvasTexture, SRGBColorSpace, LinearMipmapLinearFilter, LinearFilter, Scene, Camera, Frustum, Vector3, CylinderGeometry, PlaneGeometry, MeshStandardMaterial, DoubleSide, Matrix4, Color, Object3D, InstancedMesh } from 'three';
+// FIX: Replaced named imports with a namespace import for Three.js to resolve module resolution errors.
+import * as THREE from 'three';
 import { getGroundElevation } from './Ground.tsx';
 
 // --- HELPERS ---
@@ -77,18 +77,18 @@ const createFriendlyPineTexture = () => {
   ctx.arc(cx, top, size * 0.06, 0, Math.PI*2);
   ctx.fill();
 
-  const tex = new CanvasTexture(canvas);
-  tex.colorSpace = SRGBColorSpace;
-  tex.minFilter = LinearMipmapLinearFilter;
-  tex.magFilter = LinearFilter;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.magFilter = THREE.LinearFilter;
   return tex;
 };
 
 // --- LOGIC ---
 
 export const createPineTrees = (
-    scene: Scene, 
-    camera: Camera, 
+    scene: THREE.Scene, 
+    camera: THREE.Camera, 
     theme: any, 
     positions: {x: number, z: number}[]
 ) => {
@@ -98,12 +98,12 @@ export const createPineTrees = (
     Math.random = rng;
 
     let cleanup = () => {};
-    let update = (time: number, frustum: Frustum) => {};
+    let update = (time: number, frustum: THREE.Frustum) => {};
 
     try {
         const customUniforms = { 
             uTime: { value: 0 },
-            uCameraPosition: { value: new Vector3() } 
+            uCameraPosition: { value: new THREE.Vector3() } 
         };
         const count = positions.length;
 
@@ -118,14 +118,14 @@ export const createPineTrees = (
         `;
 
         // GEOMETRY
-        const woodGeo = new CylinderGeometry(0.0, 0.4, 1, 5);
+        const woodGeo = new THREE.CylinderGeometry(0.0, 0.4, 1, 5);
         woodGeo.translate(0, 0.5, 0);
 
-        const leafGeo = new PlaneGeometry(1, 1);
+        const leafGeo = new THREE.PlaneGeometry(1, 1);
         leafGeo.translate(0, 0.5, 0); 
 
         // MATERIALS
-        const trunkMaterial = new MeshStandardMaterial({
+        const trunkMaterial = new THREE.MeshStandardMaterial({
             color: 0xBEB28D, 
             roughness: 1.0,
             metalness: 0.0,
@@ -185,10 +185,10 @@ export const createPineTrees = (
         };
 
         const boughTexture = createFriendlyPineTexture();
-        const leafMaterial = new MeshStandardMaterial({
+        const leafMaterial = new THREE.MeshStandardMaterial({
             map: boughTexture,
             alphaTest: 0.1, 
-            side: DoubleSide,
+            side: THREE.DoubleSide,
             roughness: 1.0, 
             metalness: 0.0,
             color: 0xffffff,
@@ -267,21 +267,21 @@ export const createPineTrees = (
             );
         };
         
-        type LeafInstance = { matrix: Matrix4, color: Color };
+        type LeafInstance = { matrix: THREE.Matrix4, color: THREE.Color };
         
-        const allWoodMatrices: Matrix4[] = [];
+        const allWoodMatrices: THREE.Matrix4[] = [];
         const allLeafInstances: LeafInstance[] = [];
         
         for (let i = 0; i < count; i++) {
             const p = positions[i];
             const gElev = getGroundElevation(p.x, -p.z) * 0.3;
             const treeY = -1.5 + gElev - 0.2;
-            const treeBase = new Vector3(p.x, treeY, p.z);
+            const treeBase = new THREE.Vector3(p.x, treeY, p.z);
             
             const trunkHeight = 7.5 + Math.random() * 2.0; 
             const trunkWidth = 0.4 + Math.random() * 0.1;
             
-            const dummyWood = new Object3D();
+            const dummyWood = new THREE.Object3D();
             dummyWood.position.copy(treeBase);
             dummyWood.rotation.set((Math.random()-0.5)*0.05, Math.random()*Math.PI, (Math.random()-0.5)*0.05);
             dummyWood.scale.set(trunkWidth, trunkHeight, trunkWidth);
@@ -308,14 +308,14 @@ export const createPineTrees = (
                     const branchLen = coneRadius * (0.8 + Math.random() * 0.4);
                     const droop = 0.5 + (t * 0.4); 
                     
-                    const _start = new Vector3(0, hRatio, 0).applyMatrix4(trunkMatrix);
+                    const _start = new THREE.Vector3(0, hRatio, 0).applyMatrix4(trunkMatrix);
                     
                     const dx = Math.cos(angle) * branchLen;
                     const dz = Math.sin(angle) * branchLen;
                     const dy = -Math.sin(droop) * branchLen;
-                    const _end = new Vector3(dx, dy, dz).applyQuaternion(trunkQuat).add(_start);
+                    const _end = new THREE.Vector3(dx, dy, dz).applyQuaternion(trunkQuat).add(_start);
                     
-                    const dummy = new Object3D();
+                    const dummy = new THREE.Object3D();
                     dummy.position.copy(_start);
                     dummy.lookAt(_end);
                     dummy.rotateX(Math.PI / 2); 
@@ -325,7 +325,7 @@ export const createPineTrees = (
                     dummy.scale.set(s, s, s);
                     dummy.updateMatrix();
 
-                    const color = new Color();
+                    const color = new THREE.Color();
                     const v = Math.random();
                     if(v > 0.7) color.setHex(0xB2D8B2);      
                     else if(v > 0.3) color.setHex(0x88C488); 
@@ -337,21 +337,21 @@ export const createPineTrees = (
             }
         }
         
-        const woodMesh = new InstancedMesh(woodGeo, trunkMaterial, allWoodMatrices.length);
+        const woodMesh = new THREE.InstancedMesh(woodGeo, trunkMaterial, allWoodMatrices.length);
         allWoodMatrices.forEach((m, i) => woodMesh.setMatrixAt(i, m));
         woodMesh.castShadow = false;
         woodMesh.receiveShadow = false;
         scene.add(woodMesh);
 
         // --- SORT FOR LOD ---
-        const tempPos = new Vector3();
+        const tempPos = new THREE.Vector3();
         allLeafInstances.sort((a, b) => {
             const distA = tempPos.setFromMatrixPosition(a.matrix).lengthSq();
             const distB = tempPos.setFromMatrixPosition(b.matrix).lengthSq();
             return distA - distB;
         });
 
-        const leafMesh = new InstancedMesh(leafGeo, leafMaterial, allLeafInstances.length);
+        const leafMesh = new THREE.InstancedMesh(leafGeo, leafMaterial, allLeafInstances.length);
         allLeafInstances.forEach((inst, i) => {
             leafMesh.setMatrixAt(i, inst.matrix);
             leafMesh.setColorAt(i, inst.color);
@@ -360,7 +360,7 @@ export const createPineTrees = (
         leafMesh.receiveShadow = false;
         scene.add(leafMesh);
         
-        update = (time: number, frustum: Frustum) => {
+        update = (time: number, frustum: THREE.Frustum) => {
             customUniforms.uTime.value = time;
             customUniforms.uCameraPosition.value.copy(camera.position);
         };
