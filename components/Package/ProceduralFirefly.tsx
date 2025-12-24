@@ -8,8 +8,7 @@ import {
   Scene, 
   PerspectiveCamera, 
   SphereGeometry, 
-  MeshBasicMaterial, 
-  AdditiveBlending, 
+  MeshStandardMaterial, 
   Vector3, 
   InstancedMesh, 
   Object3D, 
@@ -29,10 +28,11 @@ export const createFireflies = (
     try {
         const geometry = new SphereGeometry(0.08, 4, 4);
         
-        const material = new MeshBasicMaterial({
-            color: 0xffffff,
+        const material = new MeshStandardMaterial({
+            color: 0x000000,
+            emissive: 0xffffff,
+            emissiveIntensity: 3.0,
             transparent: true,
-            blending: AdditiveBlending,
             depthWrite: false,
         });
 
@@ -101,29 +101,30 @@ export const createFireflies = (
                 varying float vType;
                 varying vec3 vWorldPosition;
             ` + shader.fragmentShader;
-
+            
             shader.fragmentShader = shader.fragmentShader.replace(
-                '#include <color_fragment>',
+                '#include <emissivemap_fragment>',
                 `
-                #include <color_fragment>
-                
+                #include <emissivemap_fragment>
                 vec3 gold = vec3(1.0, 0.84, 0.0);
                 vec3 purple = vec3(0.8, 0.2, 1.0);
-                
                 vec3 finalColor = mix(gold, purple, vType);
-                
-                // --- Culling LOD ---
+                totalEmissiveRadiance *= finalColor;
+                `
+            );
+
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <output_fragment>',
+                `
+                #include <output_fragment>
                 float dist = length(vWorldPosition - uCameraPos);
                 float fadeStart = 15.0; 
                 float fadeEnd = 20.0;
                 float alpha = 1.0 - smoothstep(fadeStart, fadeEnd, dist);
-
                 if (alpha < 0.05) {
                     discard;
                 }
-
-                diffuseColor.rgb = finalColor;
-                diffuseColor.a = alpha;
+                gl_FragColor.a = alpha;
                 `
             );
         };

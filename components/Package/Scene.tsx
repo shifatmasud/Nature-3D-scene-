@@ -209,7 +209,12 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
 
     const sunMesh = new Mesh(
       new SphereGeometry(6, 16, 16),
-      new MeshBasicMaterial({ color: 0xFFDD44, fog: false }) 
+      new MeshStandardMaterial({ 
+          color: 0xFFDD44, 
+          emissive: 0xFFDD44,
+          emissiveIntensity: 2.0,
+          fog: false 
+      })
     );
     scene.add(sunMesh);
 
@@ -218,7 +223,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
       new MeshStandardMaterial({ 
         color: 0xDDDDFF, 
         emissive: 0xEEEEFF,
-        emissiveIntensity: 0.6,
+        emissiveIntensity: 1.5,
         roughness: 0.8,
         fog: false
       })
@@ -271,7 +276,11 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
         const angle = (currentDayFactor - 0.5) * Math.PI; 
         sunPos.set(0, Math.sin(angle) * orbitRadius, Math.cos(angle) * orbitRadius);
         sunPos.applyAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
-        moonPos.copy(sunPos).negate();
+
+        // MODIFIED: Moon is now offset from sun to be visible in day/dusk sky
+        const moonAngle = angle - Math.PI * 0.75;
+        moonPos.set(0, Math.sin(moonAngle) * orbitRadius, Math.cos(moonAngle) * orbitRadius);
+        moonPos.applyAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
 
         sunMesh.position.copy(sunPos);
         moonMesh.position.copy(moonPos);

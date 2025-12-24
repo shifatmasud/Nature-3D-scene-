@@ -141,11 +141,11 @@ export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: 
                     b.material.needsUpdate = true;
                 }
 
-                // Night glow
-                b.material.emissiveIntensity = nightFactor * 0.9;
+                // Always-on glow, stronger at night
+                b.material.emissiveIntensity = 1.2;
                 const light = b.mesh.children.find(c => c instanceof PointLight) as PointLight;
                 if (light) {
-                    light.intensity = nightFactor * 25;
+                    light.intensity = 10 + nightFactor * 25;
                 }
             });
         };

@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -64,15 +65,15 @@ void main() {
     
     float sunY = sunDirection.y;
     
-    // --- COLORS ---
-    vec3 dayTop = vec3(0.2, 0.6, 1.0); 
-    vec3 dayBottom = vec3(0.7, 0.9, 1.0);
+    // --- COLORS (toned down to prevent bloom) ---
+    vec3 dayTop = vec3(0.2, 0.55, 0.9); 
+    vec3 dayBottom = vec3(0.6, 0.8, 0.9);
     
     vec3 nightTop = vec3(0.02, 0.02, 0.1); 
     vec3 nightBottom = vec3(0.1, 0.1, 0.2);
     
-    vec3 sunsetTop = vec3(0.5, 0.3, 0.6); 
-    vec3 sunsetBottom = vec3(1.0, 0.5, 0.2); 
+    vec3 sunsetTop = vec3(0.45, 0.25, 0.55); 
+    vec3 sunsetBottom = vec3(0.9, 0.45, 0.2); 
     
     // --- MIXING ---
     float dayFactor = smoothstep(-0.2, 0.2, sunY);
@@ -95,11 +96,11 @@ void main() {
     
     float cloudDensity = smoothstep(0.4, 0.75, cloudNoise);
     
-    vec3 cloudDayColor = vec3(1.0);
+    vec3 cloudDayColor = vec3(0.9);
     vec3 cloudNightColor = vec3(0.15, 0.15, 0.25);
     vec3 cloudColor = mix(cloudNightColor, cloudDayColor, dayFactor);
     
-    cloudColor = mix(cloudColor, vec3(1.0, 0.6, 0.4), sunsetFactor * 0.6);
+    cloudColor = mix(cloudColor, vec3(0.9, 0.5, 0.35), sunsetFactor * 0.6);
     
     skyColor = mix(skyColor, cloudColor, cloudDensity * 0.7 * smoothstep(0.0, 0.2, viewDirection.y));
 

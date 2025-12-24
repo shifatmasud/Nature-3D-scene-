@@ -72,9 +72,9 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
 
       const bloomPass = new UnrealBloomPass(
         new Vector2(width, height),
-        themeName === 'light' ? 0.02 : 0.35, 
+        themeName === 'light' ? 0.4 : 0.35, 
         0.5,
-        0.2
+        0.9
       );
       bloomPassRef.current = bloomPass;
       composer.addPass(bloomPass);
@@ -156,7 +156,8 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
 
   useEffect(() => {
     if (bloomPassRef.current) {
-      bloomPassRef.current.strength = themeName === 'light' ? 0.02 : 0.35;
+      bloomPassRef.current.strength = themeName === 'light' ? 0.4 : 0.35;
+      // The threshold doesn't need to change with theme anymore, high is good for both
     }
   }, [themeName]);
 
