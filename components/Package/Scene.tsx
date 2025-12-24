@@ -1,4 +1,5 @@
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -15,7 +16,6 @@ import {
   DirectionalLight, 
   Mesh, 
   SphereGeometry, 
-  MeshBasicMaterial, 
   MeshStandardMaterial, 
   Vector3, 
   Color, 
@@ -311,7 +311,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
 
         // Pass camera position to sky update to handle skybox behavior correctly
         sky.update(time, sunPos, camera.position);
-        water.update(time, currentDayFactor, perfSettingsRef.current.waterReflection);
+        water.update(time, currentDayFactor, perfSettingsRef.current.waterReflection, sunPos);
         if (firefliesRef.current) firefliesRef.current.update(time);
         bushes.update(time, frustum);
         trees.update(time, frustum);

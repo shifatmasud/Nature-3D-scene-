@@ -1,4 +1,5 @@
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -29,7 +30,7 @@ const Welcome = () => {
     shadows: false,
     effects: true, // Fireflies enabled by default
     antiAliasing: false,
-    waterReflection: true,
+    waterReflection: false,
   });
 
   const getSettingsButtonRight = () => {
