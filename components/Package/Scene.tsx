@@ -62,14 +62,14 @@ const getDeviceSettings = (breakpoint: Breakpoint) => {
     case 'mobile':
       return {
         cameraPos: { y: 8, z: 18 },
-        grassPatchCount: 15,
+        grassPatchCount: 25,
         fireflyCount: 25,
         balloonCount: 2,
       };
     case 'tablet':
       return {
         cameraPos: { y: 6, z: 15 },
-        grassPatchCount: 25,
+        grassPatchCount: 40,
         fireflyCount: 35,
         balloonCount: 3,
       };
@@ -77,7 +77,7 @@ const getDeviceSettings = (breakpoint: Breakpoint) => {
     default:
       return {
         cameraPos: { y: 5, z: 12 },
-        grassPatchCount: 40,
+        grassPatchCount: 60,
         fireflyCount: 50,
         balloonCount: 4,
       };

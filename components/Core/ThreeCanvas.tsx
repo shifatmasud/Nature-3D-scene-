@@ -143,7 +143,7 @@ const ThreeCanvas: React.FC<ThreeCanvasProps> = ({ onInit, onUpdate, className, 
         containerRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [onInit, antiAliasing]); // themeName removed from deps to prevent re-mounting and camera reset
+  }, [onInit, onUpdate, antiAliasing]); // themeName removed from deps to prevent re-mounting and camera reset
 
   useEffect(() => {
     if (rendererRef.current) {

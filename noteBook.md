@@ -14,6 +14,8 @@ A log of all tasks, ideas, and progress for this project.
 
 ## Done
 
+-   **[2024-05-22 12:15]**: Increased grass cluster density in `Scene.tsx` by raising the `grassPatchCount` for all device breakpoints, making the scene feel more lush.
+-   **[2024-05-22 12:00]**: Lowered water reflection texture resolution to 128x128 for improved performance and a more stylized look.
 -   **[2024-05-22 11:45]**: Fully stopped star movement by anchoring sky mesh to camera position and switching to local coordinates for noise calculation. This eliminates parallax shimmering when zooming or translating the camera.
 -   **[2024-05-22 11:30]**: Removed star twinkling animation for a more stable, serene night sky.
 -   **[2024-05-22 11:15]**: Drastically slowed down star and cloud animations in `Sky.tsx` as requested.

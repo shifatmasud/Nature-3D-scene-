@@ -21,8 +21,8 @@ export const createWater = (scene: Scene, theme: any) => {
 
         const reflector = new Reflector(waterGeometry, {
             clipBias: 0.003,
-            textureWidth: 256, // Low res for performance and stylized look
-            textureHeight: 256,
+            textureWidth: 128, // Even lower res for more performance and a stylized look
+            textureHeight: 128,
             color: new Color(0x8899aa), // Base water color
         });
 
@@ -99,9 +99,15 @@ export const createWater = (scene: Scene, theme: any) => {
             }
 
             void main() {
+                // --- COMMON GEOMETRY & TIME BASED FACTORS ---
+                float distToCenter = length(vWorldPosition.xz);
+                float depthFactor = smoothstep(uShoreDistance - 3.0, uShoreDistance, distToCenter);
+
+                // --- BASE COLOR CALCULATION ---
+                vec3 baseColor;
                 if (uReflectionEnabled > 0.5) {
                     vec2 distortedUv = vUv.xy / vUv.w;
-                    // Calmer ripples for reflection
+                    // Calmer ripples for reflection distortion
                     distortedUv += vec2(
                         sin(vWorldPosition.x * 8.0 + uTime * 0.2) * 0.008,
                         cos(vWorldPosition.z * 8.0 + uTime * 0.2) * 0.008
@@ -110,59 +116,65 @@ export const createWater = (scene: Scene, theme: any) => {
                     vec4 reflectedColor = texture2D(tDiffuse, distortedUv);
                     vec3 waterBaseColor = mix(uNightColor, uDayColor, uDayFactor);
                     
-                    vec3 finalReflectiveColor = mix(waterBaseColor, reflectedColor.rgb, reflectedColor.a * 0.9);
-                    
-                    float distToCenter = length(vWorldPosition.xz);
-                    float foamNoise = fbm(vWorldPosition * 2.0 + uTime * 0.2);
-                    float foamEdge = uShoreDistance - foamNoise * uFoamSoftness;
-                    float foamFactor = smoothstep(foamEdge, foamEdge - uFoamSoftness, distToCenter);
-                    
-                    gl_FragColor = vec4(mix(finalReflectiveColor, uFoamColor, foamFactor * 0.7), 1.0);
+                    baseColor = mix(waterBaseColor, reflectedColor.rgb, reflectedColor.a * 0.9);
 
                 } else {
-                    // --- STYLIZED ANIME WATER (CLEAN & CALM) ---
-
-                    // --- LAYER 1: Base Color Gradient ---
                     vec3 waterBaseColor = mix(uNightColor, uDayColor, uDayFactor);
                     vec3 deepColor = waterBaseColor * 0.7;
                     vec3 shallowColor = waterBaseColor * 1.2;
-                    float distToCenter = length(vWorldPosition.xz);
-                    float depthFactor = smoothstep(uShoreDistance - 3.0, uShoreDistance, distToCenter);
-                    vec3 finalColor = mix(shallowColor, deepColor, depthFactor);
-
-                    // --- LAYER 2: Stylized Ripple Highlights ---
-                    float time = uTime * 0.1;
-                    vec2 uv1 = vWorldPosition.xz * 0.25 + time;
-                    float wave1 = sin(uv1.x * 5.0 + sin(uv1.y * 10.0 + time * 1.5) * 0.5);
-                    wave1 = smoothstep(0.8, 0.85, wave1);
-
-                    vec2 uv2 = vWorldPosition.xz * 0.2;
-                    uv2.x -= time * 1.2;
-                    float wave2 = sin(uv2.y * 6.0 + sin(uv2.x * 12.0 - time * 2.0) * 0.4);
-                    wave2 = smoothstep(0.85, 0.9, wave2);
-
-                    float rippleHighlightFactor = max(wave1, wave2);
-                    vec3 rippleHighlightColor = uFoamColor * 0.8;
-                    finalColor = mix(finalColor, rippleHighlightColor, rippleHighlightFactor * (1.0 - depthFactor));
-
-                    // --- LAYER 3: Sun Glint ---
-                    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
-                    vec3 sunDir = normalize(uSunPosition);
-                    vec3 flatNormal = vec3(0.0, 1.0, 0.0);
-                    vec3 reflectDir = reflect(-sunDir, flatNormal);
-                    float spec = max(dot(viewDir, reflectDir), 0.0);
-                    float sharpSpecular = pow(spec, 64.0);
-                    vec3 specularColor = vec3(1.0, 0.98, 0.95);
-                    finalColor += specularColor * sharpSpecular * 5.0 * uDayFactor;
-
-                    // --- LAYER 4: Shore Foam ---
-                    float foamNoise = fbm(vWorldPosition * 2.0 + uTime * 0.3);
-                    float foamEdge = uShoreDistance - foamNoise * (uFoamSoftness * 0.5);
-                    float foamFactor = smoothstep(foamEdge, foamEdge - 0.3, distToCenter);
-                    finalColor = mix(finalColor, uFoamColor, foamFactor);
-
-                    gl_FragColor = vec4(finalColor, 1.0);
+                    baseColor = mix(shallowColor, deepColor, depthFactor);
                 }
+
+                // --- DYNAMIC EFFECTS (Ripples, Normals, Sparkles) ---
+
+                // 1. Calculate perturbed normal for lighting effects
+                vec2 ripple_uv = vWorldPosition.xz * 0.4;
+                float time_fast = uTime * 0.3;
+                float time_slow = uTime * 0.1;
+                float noise_sum = 0.0;
+                noise_sum += noise(vec3(ripple_uv.x + time_slow, ripple_uv.y, time_slow));
+                noise_sum += noise(vec3(ripple_uv.x, ripple_uv.y - time_fast, time_fast)) * 0.5;
+                float total_noise = noise_sum / 1.5;
+                vec3 perturbed_normal = normalize(vec3(dFdx(total_noise) * 0.25, 1.0, dFdy(total_noise) * 0.25));
+
+                // 2. Calculate ripple highlights (visual, not lighting)
+                vec2 uv_ripple_1 = vWorldPosition.xz * 0.4;
+                vec2 uv_ripple_2 = vWorldPosition.xz * 0.6;
+                float time_ripple = uTime * 0.3;
+                float wave_a = sin(uv_ripple_1.x + uv_ripple_1.y * 1.5 + time_ripple * 1.2);
+                float wave_b = cos(uv_ripple_2.x * 1.5 - uv_ripple_2.y + time_ripple * 1.0);
+                float combined_waves = wave_a * wave_b;
+                float rippleHighlightFactor = smoothstep(0.4, 0.5, combined_waves);
+                
+                // 3. Calculate sun glint/sparkles using perturbed normal
+                vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+                vec3 sunDir = normalize(uSunPosition);
+                vec3 reflectDir = reflect(-sunDir, perturbed_normal);
+                float spec = max(dot(viewDir, reflectDir), 0.0);
+                
+                float sharpSpecular = pow(spec, 96.0);
+                float sparkleNoise = noise(vec3(vWorldPosition.xz * 50.0, uTime * -0.8));
+                sparkleNoise = smoothstep(0.9, 0.95, sparkleNoise);
+
+                // --- COMPOSITING ---
+                vec3 finalColor = baseColor;
+                
+                // Add ripple highlights
+                vec3 rippleHighlightColor = uFoamColor * 0.4;
+                finalColor = mix(finalColor, rippleHighlightColor, rippleHighlightFactor * (1.0 - depthFactor) * 0.5);
+
+                // Add sun glint & sparkles
+                vec3 specularColor = vec3(1.0, 0.98, 0.95);
+                finalColor += specularColor * sharpSpecular * 4.5 * uDayFactor;
+                finalColor += specularColor * sparkleNoise * 2.0 * uDayFactor * (1.0 - depthFactor);
+
+                // Add foam
+                float foamNoise = fbm(vWorldPosition * 2.0 + uTime * 0.3);
+                float foamEdge = uShoreDistance - foamNoise * (uFoamSoftness * 0.5);
+                float foamFactor = smoothstep(foamEdge, foamEdge - 0.3, distToCenter);
+                finalColor = mix(finalColor, uFoamColor, foamFactor);
+                
+                gl_FragColor = vec4(finalColor, 1.0);
             }
         `;
 

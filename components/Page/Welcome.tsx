@@ -30,7 +30,7 @@ const Welcome = () => {
     shadows: false,
     effects: true, // Fireflies enabled by default
     antiAliasing: false,
-    waterReflection: false,
+    waterReflection: true,
   });
 
   const getSettingsButtonRight = () => {

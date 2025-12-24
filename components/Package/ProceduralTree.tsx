@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -47,7 +46,7 @@ const randomInSphere = (radius: number, center: Vector3, target: Vector3) => {
 };
 
 const createDenseClusterTexture = () => {
-  const size = 32;
+  const size = 16; // Even lower res for a more painterly look
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -73,7 +72,8 @@ const createDenseClusterTexture = () => {
   const cx = size / 2;
   const cy = size / 2;
 
-  for(let i=0; i<24; i++) {
+  // Outer layer of leaves
+  for(let i=0; i<16; i++) { // Scaled from 24
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * (size * 0.28);
     const x = cx + Math.cos(angle) * dist;
@@ -81,7 +81,8 @@ const createDenseClusterTexture = () => {
     const len = (size * 0.09) * (0.8 + Math.random() * 0.4);
     drawLeaf(x, y, len, angle - Math.PI/2 + (Math.random()*0.5 - 0.25));
   }
-  for(let i=0; i<18; i++) {
+  // Middle layer
+  for(let i=0; i<12; i++) { // Scaled from 18
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * (size * 0.18); 
     const x = cx + Math.cos(angle) * dist;
@@ -89,7 +90,8 @@ const createDenseClusterTexture = () => {
     const len = (size * 0.07) * (0.8 + Math.random() * 0.4);
     drawLeaf(x, y, len, angle - Math.PI/2 + (Math.random()*1.0 - 0.5));
   }
-  for(let i=0; i<12; i++) {
+  // Inner layer
+  for(let i=0; i<8; i++) { // Scaled from 12
     const angle = Math.random() * Math.PI * 2;
     const dist = Math.random() * (size * 0.06);
     const x = cx + Math.cos(angle) * dist;
@@ -263,7 +265,7 @@ export const createTrees = (
 
             for (const tip of branchTips) {
                 const clusterRadius = 1.4 + Math.random() * 0.8;
-                for (let l = 0; l < 25; l++) {
+                for (let l = 0; l < 30; l++) {
                     randomInSphere(clusterRadius, tip, _target);
                     dummy.position.copy(_target);
                     const _posNorm = _target.clone().sub(tip).normalize().lerp(upVector, 0.6).normalize();
