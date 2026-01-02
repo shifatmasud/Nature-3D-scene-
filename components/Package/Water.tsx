@@ -42,9 +42,11 @@ export const createWater = (scene: Scene) => {
         };
 
         const originalOnBeforeRender = reflector.onBeforeRender;
-        reflector.onBeforeRender = function(renderer, scene, camera) {
+        reflector.onBeforeRender = function(renderer, scene, camera, geometry, material, group) {
             if (customUniforms.uReflectionEnabled.value > 0.5) {
-                originalOnBeforeRender.call(reflector, renderer, scene, camera);
+                // The original Reflector `onBeforeRender` only uses the first 3 arguments.
+                // We pass all arguments to satisfy the TypeScript definition inherited from Object3D.
+                originalOnBeforeRender.call(reflector, renderer, scene, camera, geometry, material, group);
             }
         };
 
