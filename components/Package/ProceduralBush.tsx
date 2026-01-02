@@ -105,7 +105,7 @@ export const createBushes = (
     Math.random = rng;
 
     let cleanup = () => {};
-    let update = (time: number, frustum: Frustum) => {};
+    let update = (_time: number, _frustum: Frustum) => {};
 
     try {
         const customUniforms = { 

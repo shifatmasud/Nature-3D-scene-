@@ -21,7 +21,7 @@ export const createFireflies = (
     bounds: { width: number, height: number, depth: number },
     camera: PerspectiveCamera
 ) => {
-    let update = (time: number) => {};
+    let update = (_time: number) => {};
     let cleanup = () => {};
 
     try {

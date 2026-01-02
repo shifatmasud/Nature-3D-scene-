@@ -116,7 +116,7 @@ export const createGround = (
         bushes: {x: number, z: number}[]
     }
 ) => {
-  let update = (time: number) => {};
+  let update = (_time: number) => {};
   let cleanup = () => {};
 
   try {

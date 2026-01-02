@@ -33,7 +33,7 @@ export const createBalloons = (scene: Scene, camera: Camera, count: number) => {
     const rng = mulberry32(seed);
     Math.random = rng;
 
-    let update = (time: number, dayFactor: number) => {};
+    let update = (_time: number, _dayFactor: number) => {};
     let cleanup = () => {};
 
     try {

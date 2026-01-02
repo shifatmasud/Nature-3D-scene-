@@ -109,7 +109,7 @@ void main() {
 `;
 
 export const createSky = (scene: Scene) => {
-    let update = (time: number, sunPos: Vector3, cameraPos: Vector3) => {};
+    let update = (_time: number, _sunPos: Vector3, _cameraPos: Vector3) => {};
     let cleanup = () => {};
 
     try {
