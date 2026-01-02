@@ -1,15 +1,16 @@
 
-# React 18 Starter with Gemini API
+# React 18 Starter with Gemini API & Vite
 
-This is a starter project for building modern, theme-aware React applications. It's set up with a modular structure, a powerful design system, and is ready for you to integrate the Gemini API.
+This is a starter project for building modern, theme-aware React applications, now powered by Vite for a fast development experience and robust build process. It's set up with a modular structure, a powerful design system, and is ready for you to integrate the Gemini API.
 
 ## What's Inside? (ELI10 Version)
 
 Imagine you're building with LEGOs. This project gives you a super organized box of special LEGO pieces to build an amazing app.
 
--   **`index.html`**: The front door to our app. It sets up the fonts and tells the browser where to find our JavaScript code.
+-   **`package.json`**: The list of all the LEGO sets (dependencies) our project needs to work. It also has instructions (scripts) on how to run or build our app.
+-   **`vite.config.js`**: The rulebook for our super-fast LEGO builder, Vite.
+-   **`index.html`**: The front door to our app. Vite uses this to start everything.
 -   **`index.tsx`**: The main brain of the app. It tells React to start building our user interface.
--   **`importmap.js`**: A map that tells our app where to find its tools (like React and Framer Motion) on the internet, so we don't have to bundle them ourselves.
 -   **`Theme.tsx`**: The "master closet" for our app's style. It holds all the colors, fonts, and spacing rules for both light and dark modes. It's smart enough to adjust styles for phones, tablets, and desktops.
 -   **`hooks/`**: A folder for special tools (custom hooks).
     -   `useBreakpoint.tsx`: A little helper that checks if you're on a phone, tablet, or big computer screen.
@@ -62,7 +63,10 @@ Imagine you're building with LEGOs. This project gives you a super organized box
 ├── noteBook.md
 ├── bugReport.md
 ├── Theme.tsx
-├── importmap.js
+├── package.json
+├── vite.config.js
+├── tsconfig.json
+├── tsconfig.node.json
 ├── index.html
 ├── index.tsx
 ├── metadata.json
@@ -70,9 +74,10 @@ Imagine you're building with LEGOs. This project gives you a super organized box
 
 ## How to Get Started
 
-1.  Make sure you have a modern web browser.
-2.  Open the `index.html` file.
-3.  That's it! The app will run. You can start changing the code in the `.tsx` files to build your own features.
+1.  **Install dependencies**: `npm install`
+2.  **Run the development server**: `npm run dev`
+3.  Open your browser to the URL provided by Vite.
+4.  **To build for production**: `npm run build`. The output will be in the `dist/` folder, ready for deployment.
 
 ## Remix This Project
 

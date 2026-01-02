@@ -7,7 +7,10 @@ Hello! You are an AI assistant helping to build this React application. Here are
 
 -   `index.html`
 -   `index.tsx`
--   `importmap.js`
+-   `package.json`
+-   `vite.config.js`
+-   `tsconfig.json`
+-   `tsconfig.node.json`
 -   `metadata.json`
 -   `Theme.tsx`
 -   `hooks/useBreakpoint.tsx`
