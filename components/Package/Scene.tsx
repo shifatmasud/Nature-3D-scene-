@@ -85,7 +85,7 @@ const getDeviceSettings = (breakpoint: Breakpoint) => {
 };
 
 const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
-  const { theme, themeName } = useTheme();
+  const { themeName } = useTheme();
   const breakpoint = useBreakpoint();
   
   const dayFactorRef = useRef(themeName === 'light' ? 1.0 : 0.0);
@@ -177,7 +177,6 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
         const spread = 22;
         firefliesRef.current = createFireflies(
             sceneRef.current, 
-            theme, 
             deviceSettings.fireflyCount, 
             { width: spread, height: 4, depth: spread }, 
             cameraRef.current
@@ -186,7 +185,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
         firefliesRef.current.cleanup();
         firefliesRef.current = null;
     }
-  }, [performanceSettings.effects, deviceSettings.fireflyCount, theme]);
+  }, [performanceSettings.effects, deviceSettings.fireflyCount]);
 
   const initScene = useCallback((scene: ThreeScene, camera: PerspectiveCamera, renderer: WebGLRenderer) => {
     sceneRef.current = scene;
@@ -237,20 +236,20 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     controlsRef.current = controls;
 
     // --- OBJECT CREATION USING MEMOIZED LAYOUT ---
-    const sky = createSky(scene, theme);
+    const sky = createSky(scene);
     const shadowCasters = {
         rocks: layout.rockPositions,
         trees: layout.allTreePositions,
         bushes: layout.bushPositions
     };
-    const ground = createGround(scene, theme, shadowCasters);
-    const water = createWater(scene, theme);
-    const rocks = createRocks(scene, theme, layout.rockPositions);
-    const trees = createTrees(scene, camera, theme, layout.treePositions);
-    const pines = createPineTrees(scene, camera, theme, layout.pinePositions);
-    const bushes = createBushes(scene, camera, theme, layout.bushPositions);
-    const flowers = createFlowers(scene, camera, theme, layout.flowerPositions);
-    const balloons = createBalloons(scene, camera, theme, deviceSettings.balloonCount);
+    const ground = createGround(scene, shadowCasters);
+    const water = createWater(scene);
+    const rocks = createRocks(scene, layout.rockPositions);
+    const trees = createTrees(scene, camera, layout.treePositions);
+    const pines = createPineTrees(scene, camera, layout.pinePositions);
+    const bushes = createBushes(scene, camera, layout.bushPositions);
+    const flowers = createFlowers(scene, camera, layout.flowerPositions);
+    const balloons = createBalloons(scene, camera, deviceSettings.balloonCount);
 
     const obstacles = [
         ...layout.rockPositions.map(p => ({...p, r: 2.5})),
@@ -258,7 +257,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
         ...layout.treePositions.map(p => ({...p, r: 1.2})),
         ...layout.pinePositions.map(p => ({...p, r: 1.2}))
     ];
-    const grass = createGrass(scene, camera, theme, layout.grassPositions, obstacles, layout.layoutMap);
+    const grass = createGrass(scene, camera, layout.grassPositions, obstacles, layout.layoutMap);
 
     const sunPos = new Vector3();
     const moonPos = new Vector3();
@@ -267,7 +266,7 @@ const Scene: React.FC<SceneProps> = ({ performanceSettings }) => {
     const dayHemiGround = new Color(0x99CC99); 
     const nightHemiGround = new Color(0x6a8a6c); 
 
-    const envUpdate = (time: number, dayFactor: number, frustum: Frustum) => {
+    const envUpdate = (time: number, _dayFactor: number, frustum: Frustum) => {
         const targetFactor = themeTargetRef.current === 'light' ? 1.0 : 0.0;
         dayFactorRef.current += (targetFactor - dayFactorRef.current) * 0.02;
         const currentDayFactor = dayFactorRef.current;

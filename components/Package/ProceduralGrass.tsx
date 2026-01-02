@@ -24,7 +24,6 @@ import {
   InstancedBufferAttribute 
 } from 'three';
 import { ZONE_COLORS } from './LayoutMap.tsx';
-import { getGroundElevation } from './Ground.tsx';
 
 // --- HELPERS ---
 
@@ -145,7 +144,6 @@ const createTuftGeometry = () => {
 export const createGrass = (
     scene: Scene, 
     camera: Camera, 
-    theme: any, 
     positions: {x: number, z: number}[],
     obstacles: {x: number, z: number, r?: number}[] = [],
     layoutMap: ImageData
@@ -384,7 +382,7 @@ export const createGrass = (
             scene.add(grassMesh);
         }
         
-        update = (time: number, frustum: Frustum) => {
+        update = (time: number, _frustum: Frustum) => {
             customUniforms.uTime.value = time;
             customUniforms.uCameraPosition.value.copy(camera.position);
         };

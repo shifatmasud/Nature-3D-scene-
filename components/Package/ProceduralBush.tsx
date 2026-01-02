@@ -98,7 +98,6 @@ const createDenseClusterTexture = () => {
 export const createBushes = (
     scene: Scene, 
     camera: Camera, 
-    theme: any, 
     positions: {x: number, z: number}[]
 ) => {
     const originalRandom = Math.random;

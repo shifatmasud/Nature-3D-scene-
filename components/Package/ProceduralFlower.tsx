@@ -62,7 +62,6 @@ const createFlowerTexture = () => {
 export const createFlowers = (
     scene: Scene, 
     camera: Camera,
-    theme: any, 
     positions: {x: number, z: number}[]
 ) => {
     const originalRandom = Math.random;

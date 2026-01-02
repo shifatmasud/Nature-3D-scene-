@@ -27,7 +27,7 @@ const mulberry32 = (a: number) => {
   }
 };
 
-export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: number) => {
+export const createBalloons = (scene: Scene, camera: Camera, count: number) => {
     const originalRandom = Math.random;
     const seed = 78910;
     const rng = mulberry32(seed);
@@ -37,7 +37,6 @@ export const createBalloons = (scene: Scene, camera: Camera, theme: any, count: 
     let cleanup = () => {};
 
     try {
-        const group = new Group();
         
         // Simple procedural geometries
         const balloonGeo = new SphereGeometry(1.5, 16, 12);

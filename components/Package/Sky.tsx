@@ -108,7 +108,7 @@ void main() {
 }
 `;
 
-export const createSky = (scene: Scene, theme: any) => {
+export const createSky = (scene: Scene) => {
     let update = (time: number, sunPos: Vector3, cameraPos: Vector3) => {};
     let cleanup = () => {};
 

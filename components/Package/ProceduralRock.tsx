@@ -31,7 +31,6 @@ const mulberry32 = (a: number) => {
 
 export const createRocks = (
     scene: Scene, 
-    theme: any, 
     positions: {x: number, z: number}[]
 ) => {
     const originalRandom = Math.random;
@@ -234,7 +233,7 @@ export const createRocks = (
 
         scene.add(mesh);
 
-        update = (time: number, frustum: Frustum) => {
+        update = (time: number, _frustum: Frustum) => {
             customUniforms.uTime.value = time;
             const camera = scene.getObjectByProperty("isPerspectiveCamera", true) as PerspectiveCamera;
             if (camera) {

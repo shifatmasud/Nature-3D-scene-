@@ -17,7 +17,6 @@ import {
 
 export const createFireflies = (
     scene: Scene,
-    theme: any,
     count: number,
     bounds: { width: number, height: number, depth: number },
     camera: PerspectiveCamera

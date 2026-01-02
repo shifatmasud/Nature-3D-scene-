@@ -12,7 +12,7 @@ import {
 } from 'three';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 
-export const createWater = (scene: Scene, theme: any) => {
+export const createWater = (scene: Scene) => {
     let update = (time: number, dayFactor: number, reflectionEnabled: boolean, sunPosition: Vector3) => {};
     let cleanup = () => {};
 
@@ -44,7 +44,7 @@ export const createWater = (scene: Scene, theme: any) => {
         const originalOnBeforeRender = reflector.onBeforeRender;
         reflector.onBeforeRender = function(renderer, scene, camera) {
             if (customUniforms.uReflectionEnabled.value > 0.5) {
-                originalOnBeforeRender.call(this, renderer, scene, camera);
+                originalOnBeforeRender.call(this as any, renderer, scene, camera);
             }
         };
 

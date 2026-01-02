@@ -107,7 +107,6 @@ const createFriendlyPineTexture = () => {
 export const createPineTrees = (
     scene: Scene, 
     camera: Camera, 
-    theme: any, 
     positions: {x: number, z: number}[]
 ) => {
     const originalRandom = Math.random;
@@ -378,7 +377,7 @@ export const createPineTrees = (
         leafMesh.receiveShadow = false;
         scene.add(leafMesh);
         
-        update = (time: number, frustum: Frustum) => {
+        update = (time: number, _frustum: Frustum) => {
             customUniforms.uTime.value = time;
             customUniforms.uCameraPosition.value.copy(camera.position);
         };

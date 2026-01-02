@@ -3,7 +3,6 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import * as THREE from 'three';
 
 // Define colors for different zones on the map. Using simple RGB values for easy matching.
 export const ZONE_COLORS = {

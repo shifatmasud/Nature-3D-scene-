@@ -19,7 +19,7 @@ import {
 } from 'three';
 
 // Shared math for ground elevation.
-export const getGroundElevation = (x: number, y: number) => {
+export const getGroundElevation = (_x: number, _y: number) => {
   return 0.0;
 };
 
@@ -110,7 +110,6 @@ const createBakedShadowTexture = (
 
 export const createGround = (
     scene: Scene, 
-    theme: any,
     shadowCasters: {
         rocks: {x: number, z: number}[],
         trees: {x: number, z: number}[],
